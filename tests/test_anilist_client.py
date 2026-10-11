@@ -152,3 +152,13 @@ def test_user_data_is_deleted_from_the_cache_after_an_hour():
     remaining = cache._db.execute("SELECT query FROM anilist_cache").fetchall()
     assert [q for (q,) in remaining if q in anilist.USER_DATA_QUERIES] == []
     assert any(q == anilist.RELATIONS_QUERY for (q,) in remaining)  # show data stays
+
+
+def test_opening_a_client_clears_stale_user_data_without_any_request():
+    cache = ResponseCache(":memory:")
+    old = 1_000_000.0 - anilist.USER_LIST_MAX_AGE - 1
+    cache.put("k1", anilist.LIST_QUERY, {"name": "someone"}, {"x": 1}, old)
+    cache.put("k2", anilist.RELATIONS_QUERY, {"ids": [1]}, {"x": 2}, old)
+    _, _, sent = make_client([], cache=cache)  # its clock starts at 1,000,000
+    assert sent == []
+    assert [q for (q,) in cache._db.execute("SELECT query FROM anilist_cache")] == [anilist.RELATIONS_QUERY]

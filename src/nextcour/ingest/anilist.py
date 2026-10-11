@@ -4,9 +4,10 @@
   30 requests a minute as of 2026-10), spacing them evenly so it never bursts.
 - On a 429 it waits for Retry-After, then retries. On server or network errors it backs off.
 - Caches successful responses in SQLite, keyed by query and variables. Each call says how old a
-  cached answer may be: long for show data, short for user lists. User data is deleted from the
-  cache once it's older than USER_LIST_MAX_AGE, so lists are only kept briefly (AniList's terms
-  forbid using the API as a storage service).
+  cached answer may be: long for show data (kept, and refetched once stale), short for user
+  lists. User data older than USER_LIST_MAX_AGE is deleted whenever a client is created and
+  before every query, so lists are only kept briefly (AniList's terms forbid using the API as a
+  storage service).
 """
 
 from __future__ import annotations
@@ -121,6 +122,13 @@ class AniListClient:
         self._reset_at: float | None = None
         self._last_request: float | None = None
         self.requests_sent = 0
+        self._forget_stale_user_data()
+
+    def _forget_stale_user_data(self) -> None:
+        """Delete cached user data more than an hour old. Runs whenever a client is created and
+        before every query, so stale lists don't wait for the next AniList request."""
+        if self.cache is not None:
+            self.cache.delete_older_than(USER_DATA_QUERIES, self._clock() - USER_LIST_MAX_AGE)
 
     def close(self) -> None:
         self._http.close()
@@ -135,8 +143,8 @@ class AniListClient:
         """Run a GraphQL query and return its `data`, from the cache if it's fresh enough."""
         variables = variables or {}
         key = ResponseCache.key(query, variables)
+        self._forget_stale_user_data()
         if self.cache is not None:
-            self.cache.delete_older_than(USER_DATA_QUERIES, self._clock() - USER_LIST_MAX_AGE)
             cached = self.cache.get(key, max_age, self._clock())
             if cached is not None:
                 return cached
