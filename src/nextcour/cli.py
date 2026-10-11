@@ -68,6 +68,22 @@ def cmd_convert_mal(args: argparse.Namespace) -> None:
         mal.convert(name, con)
 
 
+def cmd_data_report(args: argparse.Namespace) -> None:
+    from nextcour.core import guardrail
+
+    con = duckdb.connect()
+    catalog.load(con, args.release)
+    frozen = guardrail.frozen_set_if_present()
+    my_names = [frozen.anilist_user_name, *frozen.mal_user_names] if frozen else []
+    if not my_names:
+        print("No frozen test set here, so there are no user names of mine to look for.")
+    for name, table in mal.LIST_TABLES.items():
+        if not (mal.parquet_dir(name) / f"{table.file}.parquet").exists():
+            print(f"{name}: not converted yet")
+            continue
+        print("\n".join(mal.list_report(con, name, my_names).lines()))
+
+
 def cmd_coverage(args: argparse.Namespace) -> None:
     table = mal.parquet_dir("mal-2018") / "UserAnimeList.parquet"
     if table.exists():
@@ -127,6 +143,12 @@ def main(argv: list[str] | None = None) -> None:
         "datasets", nargs="*", help=f"any of {', '.join(mal.DATASETS)}; default: every downloaded one"
     )
     p.set_defaults(run=cmd_convert_mal)
+
+    p = sub.add_parser(
+        "data-report", help="each MAL dataset's size and AniList mapping; checks for my accounts"
+    )
+    p.add_argument("--release", default=catalog.RELEASE)
+    p.set_defaults(run=cmd_data_report)
 
     p = sub.add_parser("coverage", help="measure date coverage in MAL 2018 and in a user's list")
     p.add_argument("--user", help="AniList user")

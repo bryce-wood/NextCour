@@ -15,6 +15,1488 @@
           "rows": 41537
         }
       ]
+    },
+    "mal-2018": {
+      "title": "MyAnimeList Dataset (2018), by azathoth42",
+      "source": "https://www.kaggle.com/datasets/azathoth42/myanimelist",
+      "license": "ODbL",
+      "files": [
+        {
+          "file": "anime_cleaned.csv",
+          "bytes": 6326231,
+          "sha256": "378f3acd1a9c2d1106bad57b8d29ab3138201eb22c54660e40c594b7e3f03fd0",
+          "rows": 6668,
+          "parsing": "strict",
+          "parquet_bytes": 1470565,
+          "columns": [
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "title",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_english",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_japanese",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_synonyms",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "image_url",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "status",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "airing",
+              "type": "BOOLEAN"
+            },
+            {
+              "name": "aired_string",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "scored_by",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rank",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "background",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "broadcast",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "related",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "producer",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "licensor",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "studio",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "genre",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "opening_theme",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "ending_theme",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "duration_min",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "aired_from_year",
+              "type": "DOUBLE"
+            }
+          ]
+        },
+        {
+          "file": "anime_filtered.csv",
+          "bytes": 10332849,
+          "sha256": "54b2f603e39b78789babdd8e76a93c3b70c11e4674b5818520f0b2660a01fcb4",
+          "rows": 14474,
+          "parsing": "strict",
+          "parquet_bytes": 2368344,
+          "columns": [
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "title",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_english",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_japanese",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_synonyms",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "image_url",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "status",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "airing",
+              "type": "BOOLEAN"
+            },
+            {
+              "name": "aired_string",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "scored_by",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rank",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "background",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "broadcast",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "related",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "producer",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "licensor",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "studio",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "genre",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "opening_theme",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "ending_theme",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "AnimeList.csv",
+          "bytes": 10321377,
+          "sha256": "272042567efa75859e0b9a7540ea63325a10d6fff3e1b7294e98a7d69680144f",
+          "rows": 14478,
+          "parsing": "strict",
+          "parquet_bytes": 2363912,
+          "columns": [
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "title",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_english",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_japanese",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title_synonyms",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "image_url",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "status",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "airing",
+              "type": "BOOLEAN"
+            },
+            {
+              "name": "aired_string",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "scored_by",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rank",
+              "type": "BIGINT"
+            },
+            {
+              "name": "popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "background",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "broadcast",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "related",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "producer",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "licensor",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "studio",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "genre",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "opening_theme",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "ending_theme",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "animelists_cleaned.csv",
+          "bytes": 2263111611,
+          "sha256": "22c2e65f2af1730277e130c87ba6f8f6a6e1db5baa814813a420b4a68d188aa4",
+          "rows": 31284030,
+          "parsing": "strict",
+          "parquet_bytes": 345797243,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_watched_episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_start_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_finish_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_score",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_status",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_rewatching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "my_rewatching_ep",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_last_updated",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "my_tags",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "animelists_filtered.csv",
+          "bytes": 2265068130,
+          "sha256": "f3a4ac7f2cd941e462d4d1728aecb3acfe00580cf9181a422301b3b1ec48afb9",
+          "rows": 35802006,
+          "parsing": "lenient, row count checked with Python's csv module",
+          "parquet_bytes": 467538323,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_watched_episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_start_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_finish_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_score",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_status",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_rewatching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "my_rewatching_ep",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_last_updated",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_tags",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "UserAnimeList.csv",
+          "bytes": 4996952961,
+          "sha256": "8f3d481d4bf3b7e52080401e0e6b0c16cb059dd010b9b0a9895aa470451223ee",
+          "rows": 80076112,
+          "parsing": "strict",
+          "parquet_bytes": 690469004,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_watched_episodes",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_start_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_finish_date",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "my_score",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_status",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_rewatching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_rewatching_ep",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_last_updated",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_tags",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "UserList.csv",
+          "bytes": 30456333,
+          "sha256": "de9ec535a7c60cf986cd0e2c67551724ea36d441a33857990fd8eacc8c6fadf6",
+          "rows": 302675,
+          "parsing": "strict",
+          "parquet_bytes": 10846710,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_watching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_completed",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_onhold",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_dropped",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_plantowatch",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_days_spent_watching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "gender",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "location",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "birth_date",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "access_rank",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "join_date",
+              "type": "DATE"
+            },
+            {
+              "name": "last_online",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "stats_mean_score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "stats_rewatched",
+              "type": "BIGINT"
+            },
+            {
+              "name": "stats_episodes",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "users_cleaned.csv",
+          "bytes": 15747949,
+          "sha256": "14cdb13f5fd18731639c929e3cff4e4754a69ec80edd2580e97ef3b7b941ecec",
+          "rows": 108711,
+          "parsing": "strict",
+          "parquet_bytes": 4402060,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_watching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_completed",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_onhold",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_dropped",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_plantowatch",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_days_spent_watching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "gender",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "location",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "birth_date",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "access_rank",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "join_date",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "last_online",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "stats_mean_score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "stats_rewatched",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "stats_episodes",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "users_filtered.csv",
+          "bytes": 13628577,
+          "sha256": "3af8834f968706985c7374e194919c178fa77fef5d9a0e2c86b4b91f49f9069b",
+          "rows": 116133,
+          "parsing": "strict",
+          "parquet_bytes": 4525020,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_watching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_completed",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_onhold",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_dropped",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_plantowatch",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_days_spent_watching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "gender",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "location",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "birth_date",
+              "type": "DATE"
+            },
+            {
+              "name": "access_rank",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "join_date",
+              "type": "DATE"
+            },
+            {
+              "name": "last_online",
+              "type": "TIMESTAMP"
+            },
+            {
+              "name": "stats_mean_score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "stats_rewatched",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "stats_episodes",
+              "type": "DOUBLE"
+            }
+          ]
+        }
+      ]
+    },
+    "mal-2020": {
+      "title": "Anime Recommendation Database 2020, by hernan4444",
+      "source": "https://www.kaggle.com/datasets/hernan4444/anime-recommendation-database-2020",
+      "license": "CC0",
+      "files": [
+        {
+          "file": "anime.csv",
+          "bytes": 5662362,
+          "sha256": "6e6d723f3e021e084a281d1ec557a0a10dfb9721d256b87596e02c27eb1f77e9",
+          "rows": 17562,
+          "parsing": "strict",
+          "parquet_bytes": 1667422,
+          "columns": [
+            {
+              "name": "MAL_ID",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Genres",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "English name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Japanese name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Episodes",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Producers",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Licensors",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Studios",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Ranked",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Watching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Completed",
+              "type": "BIGINT"
+            },
+            {
+              "name": "On-Hold",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Dropped",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Plan to Watch",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Score-10",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-9",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-8",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-7",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-6",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-5",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-4",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-3",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-2",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score-1",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "anime_with_synopsis.csv",
+          "bytes": 7221844,
+          "sha256": "fc5065338f1d66063cc6b6ed328701c3e23118110689daa852d5876911674e33",
+          "rows": 16214,
+          "parsing": "strict",
+          "parquet_bytes": 2618184,
+          "columns": [
+            {
+              "name": "MAL_ID",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Genres",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "sypnopsis",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "animelist.csv",
+          "bytes": 2031058307,
+          "sha256": "7de2b37250c654bcc199b68638af81dd5694825dca67a70e2e2948d2d6ceb8b5",
+          "rows": 109224747,
+          "parsing": "strict",
+          "parquet_bytes": 298599210,
+          "columns": [
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rating",
+              "type": "BIGINT"
+            },
+            {
+              "name": "watching_status",
+              "type": "BIGINT"
+            },
+            {
+              "name": "watched_episodes",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "rating_complete.csv",
+          "bytes": 817897580,
+          "sha256": "b60519348a90bd5e02c25355b374f7ca055a0637a237f0e163447953b13ffaa0",
+          "rows": 57633278,
+          "parsing": "strict",
+          "parquet_bytes": 132176701,
+          "columns": [
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rating",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "watching_status.csv",
+          "bytes": 88,
+          "sha256": "5e317012e026a596c9150178f6aa97b8f6dc5f0fd7bf1e327fa089a27b625231",
+          "rows": 5,
+          "parsing": "strict",
+          "parquet_bytes": 472,
+          "columns": [
+            {
+              "name": "status",
+              "type": "BIGINT"
+            },
+            {
+              "name": "description",
+              "type": "VARCHAR"
+            }
+          ]
+        }
+      ]
+    },
+    "mal-2023": {
+      "title": "Anime Dataset 2023, by dbdmobile",
+      "source": "https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset",
+      "license": "ODbL",
+      "note": "Only users-score-2023.csv is new. user-filtered.csv repeats mal-2020's animelist.csv exactly, and final_animedataset.csv repeats mal-2018's list entries (checked 2026-10-11).",
+      "files": [
+        {
+          "file": "anime-dataset-2023.csv",
+          "bytes": 15924739,
+          "sha256": "60fbcd6772f0bdad1bad1824486a6a87d0df1e69a6323f8d9eca6c8bc7218115",
+          "rows": 24905,
+          "parsing": "strict",
+          "parquet_bytes": 4651233,
+          "columns": [
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "English name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Other name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Genres",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Synopsis",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Episodes",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Status",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Producers",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Licensors",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Studios",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Rank",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Scored By",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Image URL",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "anime-filtered.csv",
+          "bytes": 9722413,
+          "sha256": "88b3a3bbd9fa6478953189ae6f7864b0de2ea4c584145e46844690eab009ad3e",
+          "rows": 14952,
+          "parsing": "strict",
+          "parquet_bytes": 3236998,
+          "columns": [
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Genres",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "English name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Japanese name",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "sypnopsis",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Episodes",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Aired",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Premiered",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Producers",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Licensors",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Studios",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Duration",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Rating",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Ranked",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Members",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Favorites",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Watching",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Completed",
+              "type": "BIGINT"
+            },
+            {
+              "name": "On-Hold",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Dropped",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "final_animedataset.csv",
+          "bytes": 4549801910,
+          "sha256": "47f6fc0cc7e954e478d96ec47aaf4fc7b731e7dc84a9222c2be449064e74dbf4",
+          "rows": 35305695,
+          "parsing": "strict",
+          "parquet_bytes": 442309154,
+          "columns": [
+            {
+              "name": "username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "my_score",
+              "type": "BIGINT"
+            },
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "gender",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "title",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "type",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "source",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "scored_by",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rank",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "popularity",
+              "type": "BIGINT"
+            },
+            {
+              "name": "genre",
+              "type": "VARCHAR"
+            }
+          ]
+        },
+        {
+          "file": "user-filtered.csv",
+          "bytes": 1545214210,
+          "sha256": "b3c1c2ab15ee1020fad64a20460fb70842da65bdb10820d2003ca39ed22bfa99",
+          "rows": 109224747,
+          "parsing": "strict",
+          "parquet_bytes": 235715007,
+          "columns": [
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "rating",
+              "type": "BIGINT"
+            }
+          ]
+        },
+        {
+          "file": "users-details-2023.csv",
+          "bytes": 73927314,
+          "sha256": "a7ea0f4922c153bbe86093ec01921b4dfa2fe7a0d58278cefb65306e71feafca",
+          "rows": 731290,
+          "parsing": "strict",
+          "parquet_bytes": 13585358,
+          "columns": [
+            {
+              "name": "Mal ID",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Gender",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Birthday",
+              "type": "TIMESTAMP WITH TIME ZONE"
+            },
+            {
+              "name": "Location",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "Joined",
+              "type": "TIMESTAMP WITH TIME ZONE"
+            },
+            {
+              "name": "Days Watched",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Mean Score",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Watching",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Completed",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "On Hold",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Dropped",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Plan to Watch",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Total Entries",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Rewatched",
+              "type": "DOUBLE"
+            },
+            {
+              "name": "Episodes Watched",
+              "type": "DOUBLE"
+            }
+          ]
+        },
+        {
+          "file": "users-score-2023.csv",
+          "bytes": 1157881770,
+          "sha256": "68d635154c0d9b8b601c2b3514933e3433c9ef2db0188b6c63155853cf85cea0",
+          "rows": 24325191,
+          "parsing": "strict",
+          "parquet_bytes": 114822338,
+          "columns": [
+            {
+              "name": "user_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Username",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "anime_id",
+              "type": "BIGINT"
+            },
+            {
+              "name": "Anime Title",
+              "type": "VARCHAR"
+            },
+            {
+              "name": "rating",
+              "type": "BIGINT"
+            }
+          ]
+        }
+      ]
     }
   }
 }
