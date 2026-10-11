@@ -1,0 +1,20 @@
+{
+  "about": "Sources and checksums of every dataset NextCour uses. Data lives in data/.",
+  "datasets": {
+    "anime-offline-database": {
+      "title": "anime-offline-database, by manami-project",
+      "source": "https://github.com/manami-project/anime-offline-database",
+      "license": "ODbL 1.0 + DbCL 1.0",
+      "release": "2026-27",
+      "last_update": "2026-07-04",
+      "files": [
+        {
+          "file": "anime-offline-database/2026-27/anime-offline-database-minified.json",
+          "bytes": 62331136,
+          "sha256": "395be786fb2f98f1fca9e963911b9332110098a080e7e2569902bbc5641d1a41",
+          "rows": 41537
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Store text files with LF line endings, so checksums and diffs match on every OS.
+* text=auto eol=lf

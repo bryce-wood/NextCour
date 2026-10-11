@@ -1,0 +1,20 @@
+# This public repo holds only what's needed to run NextCour.
+
+# Datasets and anything generated from them: large, never committed or redistributed
+data/
+
+# Secrets (API keys)
+.env
+
+# Private: the planning docs (their own git repo), instructions for Claude Code, and my frozen
+# "works for me" test set (personal viewing history; tests that need it skip without it)
+docs/
+CLAUDE.md
+frozen/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

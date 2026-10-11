@@ -1,0 +1,40 @@
+[project]
+name = "nextcour"
+version = "0.1.0"
+description = "NextCour: explainable anime recommendations for AniList"
+readme = "README.md"
+authors = [
+    { name = "Bryce", email = "bwood1178@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.6",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+nextcour = "nextcour.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "local_data: needs local, private files (data/, frozen/); skipped when they're missing, as in CI",
+]
