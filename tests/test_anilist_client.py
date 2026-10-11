@@ -136,3 +136,19 @@ def test_fetch_media_batches_fifty_ids_per_request():
     client, _, sent = make_client(pages)
     anilist.fetch_media_with_relations(client, range(120))
     assert [len(body["variables"]["ids"]) for _, body in sent] == [50, 50, 20]
+
+
+def test_user_data_is_deleted_from_the_cache_after_an_hour():
+    cache = ResponseCache(":memory:")
+    lists = ok({"MediaListCollection": {"hasNextChunk": False, "lists": []}})
+    show = ok({"Page": {"media": [{"id": 1}]}})
+    client, fake, _ = make_client([lists, show, ok({"Page": {"media": []}})], cache=cache)
+    anilist.fetch_list(client, "someone")
+    anilist.fetch_media_with_relations(client, [1])
+    count = "SELECT count(*) FROM anilist_cache"
+    assert cache._db.execute(count).fetchone()[0] == 2
+    fake.now += anilist.USER_LIST_MAX_AGE + 1
+    client.query("{ other }", max_age=0)  # any query clears expired user data first
+    remaining = cache._db.execute("SELECT query FROM anilist_cache").fetchall()
+    assert [q for (q,) in remaining if q in anilist.USER_DATA_QUERIES] == []
+    assert any(q == anilist.RELATIONS_QUERY for (q,) in remaining)  # show data stays

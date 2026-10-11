@@ -4,8 +4,9 @@
   30 requests a minute as of 2026-10), spacing them evenly so it never bursts.
 - On a 429 it waits for Retry-After, then retries. On server or network errors it backs off.
 - Caches successful responses in SQLite, keyed by query and variables. Each call says how old a
-  cached answer may be: long for show data, short for user lists, which are only cached briefly
-  (see Data rights in the design note).
+  cached answer may be: long for show data, short for user lists. User data is deleted from the
+  cache once it's older than USER_LIST_MAX_AGE, so lists are only kept briefly (AniList's terms
+  forbid using the API as a storage service).
 """
 
 from __future__ import annotations
@@ -80,6 +81,16 @@ class ResponseCache:
         )
         self._db.commit()
 
+    def delete_older_than(self, queries: Iterable[str], cutoff: float) -> None:
+        """Delete cached answers to these queries that were fetched before `cutoff`."""
+        queries = list(queries)
+        placeholders = ", ".join("?" * len(queries))
+        self._db.execute(
+            f"DELETE FROM anilist_cache WHERE query IN ({placeholders}) AND fetched_at < ?",
+            (*queries, cutoff),
+        )
+        self._db.commit()
+
     def close(self) -> None:
         self._db.close()
 
@@ -125,6 +136,7 @@ class AniListClient:
         variables = variables or {}
         key = ResponseCache.key(query, variables)
         if self.cache is not None:
+            self.cache.delete_older_than(USER_DATA_QUERIES, self._clock() - USER_LIST_MAX_AGE)
             cached = self.cache.get(key, max_age, self._clock())
             if cached is not None:
                 return cached
@@ -244,6 +256,10 @@ query ($ids: [Int]) {{
   }}
 }}
 """
+
+
+# Queries that return a user's data. Their cached answers are deleted after USER_LIST_MAX_AGE.
+USER_DATA_QUERIES = (USER_QUERY, LIST_QUERY)
 
 
 def fetch_user(client: AniListClient, name: str) -> dict[str, Any]:
