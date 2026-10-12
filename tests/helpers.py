@@ -22,6 +22,9 @@ def entry(
     completed: str | None = None,
     created: dt.datetime | None = None,
     format: str = "TV",
+    progress: int = 12,
+    episodes: int | None = 12,
+    duration: int | None = 24,
 ) -> ListEntry:
     return ListEntry(
         anilist_id=anilist_id,
@@ -31,9 +34,11 @@ def entry(
         aired=d(aired),
         status=status,
         score=score,
-        progress=12,
+        progress=progress,
         repeat=repeat,
         started=d(started),
         completed=d(completed),
         created=created or dt.datetime(2022, 1, 1, tzinfo=dt.UTC),
+        episodes=episodes,
+        duration=duration,
     )

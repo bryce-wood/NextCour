@@ -36,6 +36,8 @@ class ListEntry:
     started: dt.date | None  # earliest day the recorded start could be
     completed: dt.date | None  # latest day the recorded completion could be
     created: dt.datetime  # when the entry was added to the list (UTC)
+    episodes: int | None = None  # the show's episode count, if known
+    duration: int | None = None  # minutes per episode, if known
 
     @property
     def watch_dates_trusted(self) -> bool:
@@ -82,4 +84,6 @@ def from_anilist(entry: dict[str, Any]) -> ListEntry:
         started=fuzzy_date(entry.get("startedAt"), latest=False),
         completed=fuzzy_date(entry.get("completedAt"), latest=True),
         created=dt.datetime.fromtimestamp(entry["createdAt"], dt.UTC),
+        episodes=media.get("episodes"),
+        duration=media.get("duration"),
     )

@@ -266,6 +266,28 @@ query ($ids: [Int]) {{
 """
 
 
+TOP_STAFF = 25  # sorted by AniList's relevance, so the key creative roles come first
+TOP_RECOMMENDATIONS = 25  # the crowd's highest-rated "if you liked this" links
+
+DETAILS_QUERY = f"""
+query ($ids: [Int]) {{
+  Page(page: 1, perPage: {MEDIA_PER_PAGE}) {{
+    media(id_in: $ids, type: ANIME) {{
+      {MEDIA_FIELDS}
+      averageScore meanScore popularity genres
+      tags {{ id name rank category isMediaSpoiler isGeneralSpoiler }}
+      studios {{ edges {{ isMain node {{ id name }} }} }}
+      staff(perPage: {TOP_STAFF}, sort: [RELEVANCE, ID]) {{ edges {{ role node {{ id name {{ full }} }} }} }}
+      recommendations(perPage: {TOP_RECOMMENDATIONS}, sort: [RATING_DESC, ID]) {{
+        nodes {{ rating mediaRecommendation {{ id }} }}
+      }}
+      relations {{ edges {{ relationType(version: 2) node {{ id type }} }} }}
+    }}
+  }}
+}}
+"""
+
+
 # Queries that return a user's data. Their cached answers are deleted after USER_LIST_MAX_AGE.
 USER_DATA_QUERIES = (USER_QUERY, LIST_QUERY)
 
@@ -301,10 +323,20 @@ def fetch_list(client: AniListClient, name: str) -> list[dict[str, Any]]:
 
 def fetch_media_with_relations(client: AniListClient, ids: Iterable[int]) -> list[dict[str, Any]]:
     """Shows with their typed relations, fetched 50 per request."""
+    return _fetch_media(client, RELATIONS_QUERY, ids)
+
+
+def fetch_show_details(client: AniListClient, ids: Iterable[int]) -> list[dict[str, Any]]:
+    """Shows with what the scorer needs: tags with relevance, studios, key staff, the crowd's
+    recommendations, typed relations and the average score. Fetched 50 per request."""
+    return _fetch_media(client, DETAILS_QUERY, ids)
+
+
+def _fetch_media(client: AniListClient, query: str, ids: Iterable[int]) -> list[dict[str, Any]]:
     unique = sorted(set(ids))
     media: list[dict[str, Any]] = []
     for start in range(0, len(unique), MEDIA_PER_PAGE):
         batch = unique[start : start + MEDIA_PER_PAGE]
-        page = client.query(RELATIONS_QUERY, {"ids": batch}, max_age=SHOW_MAX_AGE)
+        page = client.query(query, {"ids": batch}, max_age=SHOW_MAX_AGE)
         media.extend(page["Page"]["media"])
     return media

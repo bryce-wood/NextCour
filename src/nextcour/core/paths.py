@@ -26,6 +26,7 @@ PARQUET = DATA / "parquet"
 PROCESSED = DATA / "processed"
 FROZEN_SNAPSHOT_DIR = DATA / "frozen"
 APP_DB = DATA / "nextcour.sqlite"
+RESULTS = DATA / "results"  # evaluation results; they hold my labels, so they stay private
 
 MANIFESTS = ROOT / "manifests"
 DATASET_MANIFEST = MANIFESTS / "datasets.json"
