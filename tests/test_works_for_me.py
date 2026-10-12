@@ -59,8 +59,9 @@ def test_pairs_skip_equal_labels_and_score_both_shows_from_the_same_profile():
     assert (summary.pairs, summary.shows) == (2, 3)
     assert summary.correct == {"by_id": 2.0, "flat": 1.0}
     assert summary.difference == pytest.approx(0.5)
-    assert summary.disagreements == 2
-    assert summary.disagreements_won == {"by_id": 2, "flat": 0}
+    assert summary.ties == {"by_id": 0, "flat": 2}
+    assert summary.opposite == 0
+    assert summary.tie_breaks["by_id"] == (2, 0)
 
 
 def test_bootstrap_is_repeatable_and_brackets_a_sure_difference():
@@ -73,3 +74,16 @@ def test_bootstrap_is_repeatable_and_brackets_a_sure_difference():
     interval = wfm.bootstrap_interval(pairs, ("good", "bad"), draws=200, seed=1)
     assert interval == wfm.bootstrap_interval(pairs, ("good", "bad"), draws=200, seed=1)
     assert interval == (1.0, 1.0)
+
+
+def test_opposite_orders_are_counted_apart_from_ties():
+    a, b, c = frozen(1, "2023-01-01"), frozen(2, "2023-02-01"), frozen(3, "2023-03-01")
+    pairs = [
+        wfm.Pair(a, b, a.as_of, 0, True, (0.2, 0.8), {"x": (0.1, 0.9), "y": (0.9, 0.1)}),  # x right
+        wfm.Pair(a, c, a.as_of, 0, True, (0.2, 0.8), {"x": (0.9, 0.1), "y": (0.5, 0.5)}),  # y tied
+        wfm.Pair(b, c, b.as_of, 0, True, (0.2, 0.8), {"x": (0.1, 0.9), "y": (0.1, 0.9)}),  # both right
+    ]
+    summary = wfm.summarize(pairs, ("x", "y"))
+    assert summary.correct == {"x": 2.0, "y": 1.5}
+    assert (summary.opposite, summary.opposite_won) == (1, {"x": 1, "y": 0})
+    assert summary.tie_breaks == {"x": (0, 1), "y": (0, 0)}

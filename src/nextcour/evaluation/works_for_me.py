@@ -134,8 +134,10 @@ class Summary:
     pairs: int
     shows: int
     correct: dict[str, float]  # method -> pairs ordered right (ties count half)
-    disagreements: int  # pairs the two methods order differently
-    disagreements_won: dict[str, int]  # method -> how many of those it got right
+    ties: dict[str, int]  # method -> pairs it scored as a tie
+    opposite: int  # pairs both methods ordered, in opposite directions
+    opposite_won: dict[str, int]  # method -> how many of those it got right
+    tie_breaks: dict[str, tuple[int, int]]  # method -> (right, wrong) where only the other tied
     difference: float  # accuracy of the first method minus the second's
     interval: tuple[float, float] | None  # 95% bootstrap interval for the difference
 
@@ -145,15 +147,25 @@ class Summary:
 
 def summarize(pairs: Sequence[Pair], methods: tuple[str, str], seed: int = 0) -> Summary:
     first, second = methods
+    other = {first: second, second: first}
     correct = {m: sum(p.outcome(m) for p in pairs) for m in methods}
-    disagree = [p for p in pairs if p.outcome(first) != p.outcome(second)]
+    ordered_by_both = [p for p in pairs if p.outcome(first) != 0.5 and p.outcome(second) != 0.5]
+    opposite = [p for p in ordered_by_both if p.outcome(first) != p.outcome(second)]
     n = len(pairs)
     return Summary(
         pairs=n,
         shows=len({s.anilist_id for p in pairs for s in (p.first, p.second)}),
         correct=correct,
-        disagreements=len(disagree),
-        disagreements_won={m: sum(1 for p in disagree if p.outcome(m) == 1.0) for m in methods},
+        ties={m: sum(1 for p in pairs if p.outcome(m) == 0.5) for m in methods},
+        opposite=len(opposite),
+        opposite_won={m: sum(1 for p in opposite if p.outcome(m) == 1.0) for m in methods},
+        tie_breaks={
+            m: (
+                sum(1 for p in pairs if p.outcome(other[m]) == 0.5 and p.outcome(m) == 1.0),
+                sum(1 for p in pairs if p.outcome(other[m]) == 0.5 and p.outcome(m) == 0.0),
+            )
+            for m in methods
+        },
         difference=(correct[first] - correct[second]) / n if n else float("nan"),
         interval=bootstrap_interval(pairs, methods, seed=seed) if n else None,
     )

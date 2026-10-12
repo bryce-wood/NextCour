@@ -166,7 +166,7 @@ def cmd_rank(args: argparse.Namespace) -> None:
 def cmd_works_for_me(args: argparse.Namespace) -> None:
     from nextcour.core import guardrail
     from nextcour.evaluation import works_for_me as wfm
-    from nextcour.models import scorer_v0
+    from nextcour.models import baselines, scorer_v0
     from nextcour.models.scorer_v0 import ScorerV0
 
     frozen = guardrail.load_frozen_set()
@@ -182,17 +182,17 @@ def cmd_works_for_me(args: argparse.Namespace) -> None:
 
     methods: dict[str, wfm.Method] = {
         "scorer_v0": lambda profile, known: ScorerV0(profile, known).predict,
-        # Orders exactly as average score does, with missing scores handled like the scorer's.
-        "average_score": lambda profile, known: ScorerV0(profile, known).crowd_prior,
+        "average_score": baselines.average_score,
     }
     compared = ("scorer_v0", "average_score")
     today = dt.date.today().isoformat()
+    run_at = dt.datetime.now(dt.UTC)
     paths.RESULTS.mkdir(parents=True, exist_ok=True)
     details_file = paths.RESULTS / f"show-details-{today}.json"
     details_file.write_text(json.dumps(media, ensure_ascii=False), encoding="utf-8")
 
     result: dict[str, object] = {
-        "run_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+        "run_at": run_at.isoformat(timespec="seconds"),
         **_commit(),
         "catalog_release": frozen.catalog_release,
         "snapshot_sha256": frozen.snapshot_sha256,
@@ -220,13 +220,18 @@ def cmd_works_for_me(args: argparse.Namespace) -> None:
                 )
             low, high = summary.interval or (float("nan"), float("nan"))
             print(f"    difference     {summary.difference:+.3f}  (95% interval {low:+.3f} to {high:+.3f})")
-            won = summary.disagreements_won
+            won = summary.opposite_won
             print(
-                f"    they disagree on {summary.disagreements} pairs:"
+                f"    ordered in opposite directions: {summary.opposite} pairs;"
                 f" scorer v0 right on {won['scorer_v0']}, average score on {won['average_score']}"
             )
+            right, wrong = summary.tie_breaks["scorer_v0"]
+            print(
+                f"    average score tied: {summary.ties['average_score']} pairs;"
+                f" scorer v0 broke {right} right and {wrong} wrong"
+            )
         result["sets"][which] = record  # type: ignore[index]
-    out = paths.RESULTS / f"works-for-me-{today}.json"
+    out = paths.RESULTS / f"works-for-me-{run_at:%Y-%m-%dT%H%M}.json"
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"\nWrote {out}")
 

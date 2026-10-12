@@ -3,7 +3,8 @@
 Every part is in the units of the enjoyment label (0 to 1), so the parts can be added:
 1. Crowd prior: where the show's AniList average score falls among the average scores of the
    shows in my history. If my taste matched the crowd's exactly, that's where the show would land
-   among my own scores. It orders shows exactly as sorting by average score does.
+   among my own scores. It's coarser than the average score itself: shows whose averages fall
+   between the same two history shows' averages get the same prior.
 2. Taste match: how much more or less than the crowd's scores suggested I enjoyed past shows with
    this show's tags, genres, studios and key staff.
 3. Crowd links: the same, for the past shows the crowd links to this one ("if you liked X, try
