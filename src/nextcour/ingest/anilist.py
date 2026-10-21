@@ -281,7 +281,8 @@ query ($ids: [Int]) {{
       recommendations(perPage: {TOP_RECOMMENDATIONS}, sort: [RATING_DESC, ID]) {{
         nodes {{ rating mediaRecommendation {{ id }} }}
       }}
-      relations {{ edges {{ relationType(version: 2) node {{ id type }} }} }}
+      relations {{ edges {{ relationType(version: 2)
+        node {{ id type format startDate {FUZZY_DATE} title {{ romaji english }} }} }} }}
     }}
   }}
 }}

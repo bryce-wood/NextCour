@@ -34,6 +34,17 @@ class Feature:
 
 
 @dataclass(frozen=True)
+class Related:
+    """A show this one follows from: a prequel, or the parent of a side story or spin-off."""
+
+    anilist_id: int
+    relation: str  # "PREQUEL" or "PARENT", read from this show's side
+    title: str
+    format: str | None
+    aired: dt.date | None
+
+
+@dataclass(frozen=True)
 class Show:
     anilist_id: int
     title: str
@@ -43,6 +54,7 @@ class Show:
     popularity: int | None  # how many AniList users have it on their list
     features: tuple[Feature, ...] = ()
     recommendations: Mapping[int, int] = field(default_factory=dict)  # linked show -> net votes
+    follows: tuple[Related, ...] = ()  # its prequels and parents, as AniList lists them
 
     def link_votes(self, other: Show) -> int:
         """Net votes for the crowd's link between this show and `other`, from either side."""
@@ -79,6 +91,20 @@ def from_anilist(media: dict[str, Any]) -> Show:
         for node in (media.get("recommendations") or {}).get("nodes") or []
         if node.get("mediaRecommendation") and node["rating"] > 0
     }
+
+    # Relations are read from this show's side: "PREQUEL: X" means X comes right before it.
+    follows = [
+        Related(
+            anilist_id=edge["node"]["id"],
+            relation=edge["relationType"],
+            title=_title(edge["node"].get("title")) or f"AniList show {edge['node']['id']}",
+            format=edge["node"].get("format"),
+            aired=fuzzy_date(edge["node"].get("startDate"), latest=False),
+        )
+        for edge in (media.get("relations") or {}).get("edges") or []
+        if edge["node"].get("type") == "ANIME" and edge["relationType"] in ("PREQUEL", "PARENT")
+    ]
+
     title = media["title"]
     return Show(
         anilist_id=media["id"],
@@ -89,4 +115,11 @@ def from_anilist(media: dict[str, Any]) -> Show:
         popularity=media.get("popularity"),
         features=tuple(features),
         recommendations=recommendations,
+        follows=tuple(follows),
     )
+
+
+def _title(title: dict[str, str | None] | None) -> str | None:
+    if not title:
+        return None
+    return title.get("english") or title.get("romaji")
