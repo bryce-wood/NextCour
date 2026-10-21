@@ -100,7 +100,12 @@ def create_app(
         except anilist.NotFound as error:
             raise HTTPException(404, f"No public AniList anime list for {user}.") from error
         except anilist.AniListError as error:
-            raise HTTPException(502, f"AniList didn't answer: {error}") from error
+            # AniList suspends its API during severe outages (a 403); lists can't load until it's back.
+            raise HTTPException(
+                503,
+                f"AniList's API isn't available right now, so the list can't load. Try again later. "
+                f"AniList said: {error}. The writer comparison at /compare still works.",
+            ) from error
 
     def page_data(ranking: Ranking) -> dict[str, Any]:
         found = service.explanations(writer, ranking)

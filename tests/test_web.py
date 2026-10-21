@@ -51,6 +51,10 @@ class FakePlanner:
     def ranking(self, user):
         if user == "nobody":
             raise anilist.NotFound("not found", 404)
+        if user == "outage":
+            raise anilist.AniListError(
+                "AniList error 403: The AniList API has been temporarily disabled", 403
+            )
         hidden = self.feedback.not_interested("Someone")
         shown = [(i, t) for i, t in self.shows if i not in hidden]
         rows = [row(rank, i, t) for rank, (i, t) in enumerate(shown, 1)]
@@ -174,6 +178,13 @@ def test_unknown_users_get_a_404(app_parts):
     assert client.get("/u/nobody").status_code == 404
     response = client.get("/api/u/nobody/planning")
     assert response.status_code == 404 and "No public AniList" in response.json()["error"]
+
+
+def test_an_anilist_outage_says_so(app_parts):
+    client, *_ = app_parts
+    response = client.get("/u/outage")
+    assert response.status_code == 503
+    assert "available right now" in response.text and "/compare" in response.text
 
 
 def test_explanations_are_written_in_the_background(tmp_path):
