@@ -208,7 +208,7 @@ def cmd_explain(args: argparse.Namespace) -> None:
 def cmd_compare_writers(args: argparse.Namespace) -> None:
     from nextcour.explain import compare
 
-    writer = _writer(timeout=600.0)
+    writer = _writer()
     if writer.client is None:
         sys.exit("The comparison needs GEMINI_API_KEY in .env.")
     ranking = _planner(args.release).ranking(args.user)

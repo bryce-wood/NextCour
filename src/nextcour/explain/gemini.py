@@ -41,8 +41,8 @@ BUSY_RETRIES = 2
 RATE_RETRIES = 3
 SPACING_MARGIN = 1.1  # space requests 10% wider than the limit requires
 # Busy free-tier models can take minutes: 3.8 Flash took 3.5 to 4.5 minutes to answer a
-# one-line request on 2026-10-21, with or without thinking.
-TIMEOUT = 300.0
+# one-line request on 2026-10-21, with or without thinking, and up to 5 minutes for ten shows.
+TIMEOUT = 600.0
 
 
 @dataclass(frozen=True)
