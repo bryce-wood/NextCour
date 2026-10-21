@@ -205,7 +205,7 @@ def test_a_show_with_no_usable_sentence_gets_the_template():
 def test_an_explanation_without_numbers_gets_the_template():
     vague = {
         "explanations": [
-            {"show_id": "S1", "sentences": [{"text": "Fans of Mob Psycho 100 like it.", "evidence": ["S1b"]}]}
+            {"show_id": "S1", "sentences": [{"text": "Fans of that show like it.", "evidence": ["S1b"]}]}
         ]
     }
     results, _ = write_batch([item()], FakeModels({"m": vague}), ["m"])
