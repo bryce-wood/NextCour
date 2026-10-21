@@ -257,7 +257,7 @@ def create_app(
         )
 
     @app.get("/compare/results", response_class=HTMLResponse)
-    def comparison_results(request: Request) -> Response:
+    def comparison_results(request: Request, reveal: bool = False) -> Response:
         comparison = current_comparison()
         chosen = votes.of(comparison["id"])
         return templates.TemplateResponse(
@@ -268,6 +268,8 @@ def create_app(
                 "votes": chosen,
                 "choices": compare.CHOICES,
                 "tallies": compare.tally(comparison, chosen),
+                # Which model was A or B stays hidden until every show is voted, so it can't sway a vote.
+                "revealed": reveal or len(chosen) >= len(comparison["items"]),
             },
         )
 

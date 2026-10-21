@@ -230,6 +230,9 @@ def test_the_comparison_hides_models_until_the_results(app_parts):
     page = client.get("/compare").text
     assert "Text from A." in page and "Text from B." in page
     assert "secret-model" not in page
+    early = client.get("/compare/results").text
+    assert "reveal it now" in early and "Your vote" not in early  # no A/B answers before the votes
+    assert "Your vote" in client.get("/compare/results", params={"reveal": "true"}).text
     response = client.post("/compare/c1/1/a")
     assert "chosen" in response.text and "All done" in response.text
     assert votes.of("c1") == {1: "a"}

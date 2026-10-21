@@ -22,6 +22,10 @@ and the other model becomes its backup. Tell Claude which won, or set the order 
 <code>src/nextcour/explain/writer.py</code> (<code>DEFAULT_MODELS</code>).</p>
 
 <h2>Show by show</h2>
+{% if not revealed %}
+<p>Which model was A and which was B appears here once all {{ comparison["items"] | length }} shows are voted, so it
+can't sway a vote. <a href="/compare">Keep voting</a>, or <a href="/compare/results?reveal=true">reveal it now</a>.</p>
+{% else %}
 <table>
   <tr><th>Show</th><th>A</th><th>B</th><th>Your vote</th></tr>
   {% for item in comparison["items"] %}
@@ -33,4 +37,5 @@ and the other model becomes its backup. Tell Claude which won, or set the order 
   </tr>
   {% endfor %}
 </table>
+{% endif %}
 {% endblock %}
