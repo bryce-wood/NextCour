@@ -9,7 +9,7 @@ from nextcour.app.web import Jobs, create_app
 from nextcour.candidates.planning import HeldBack
 from nextcour.core.shows import Show
 from nextcour.explain import compare, evidence
-from nextcour.explain.gemini import Reply
+from nextcour.explain.gemini import ModelUnavailable, Reply
 from nextcour.explain.writer import ExplanationStore, Item, Writer
 from nextcour.ingest import anilist
 from nextcour.models.scorer_v0 import Contribution, Score
@@ -98,6 +98,26 @@ def test_index_and_redirect(app_parts):
     assert "AniList user name" in client.get("/").text
     response = client.get("/", params={"user": " Someone "}, follow_redirects=False)
     assert response.status_code == 303 and response.headers["location"] == "/u/Someone"
+    response = client.get("/", params={"user": "a/b c"}, follow_redirects=False)
+    assert response.headers["location"] == "/u/a%2Fb%20c"
+
+
+def test_the_page_says_why_explanations_are_still_plain(tmp_path):
+    class Busy:
+        def generate_json(self, *args):
+            raise ModelUnavailable("m is busy or unreachable")
+
+    feedback = FeedbackStore(":memory:")
+    writer = Writer(ExplanationStore(":memory:"), Busy(), ("m",))
+    jobs = Jobs()
+    app = create_app(FakePlanner(feedback), writer, feedback, compare.Votes(":memory:"), tmp_path, jobs)
+    client = TestClient(app)
+    client.get("/u/Someone")
+    jobs.running["someone"].join(timeout=5)
+    page = client.get("/u/Someone").text
+    assert "3 explanations still use the plain version" in page
+    assert "m is busy or unreachable" in page
+    assert "Write them now" in page  # no automatic retry right after a failure
 
 
 def test_planning_page_shows_the_ranked_list(app_parts):

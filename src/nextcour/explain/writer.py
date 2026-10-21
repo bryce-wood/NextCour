@@ -22,7 +22,7 @@ import sqlite3
 import threading
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -344,7 +344,6 @@ class Writer:
     client: GeminiClient | None
     models: Sequence[str] = DEFAULT_MODELS
     batch_size: int = BATCH_SIZE
-    written: list[Explanation] = field(default_factory=list)
 
     def cached(self, user: str, items: Iterable[Item]) -> dict[int, Explanation]:
         return {item.anilist_id: hit for item in items if (hit := self.store.get(user, item)) is not None}
@@ -363,7 +362,6 @@ class Writer:
             results, answered_by = write_batch(batch, self.client, self.models)
             for item in batch:
                 out[item.anilist_id] = results[item.anilist_id]
-                self.written.append(results[item.anilist_id])
                 if answered_by is not None:
                     self.store.put(user, item, results[item.anilist_id])
         return out

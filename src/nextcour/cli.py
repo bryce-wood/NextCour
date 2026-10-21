@@ -185,7 +185,7 @@ def cmd_explain(args: argparse.Namespace) -> None:
     writer = _writer(args.model)
     if args.rewrite:
         writer.store.forget_user(ranking.user)
-    written = service.write_missing(writer, ranking, rows) if not args.cached_only else 0
+    written = len(service.write_missing(writer, ranking, rows)) if not args.cached_only else 0
     found = service.explanations(writer, ranking)
     client = writer.client
     print(f"{ranking.user}: {len(rows)} shows; {written} explanations written now")

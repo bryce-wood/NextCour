@@ -23,6 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
@@ -56,7 +57,8 @@ class Jobs:
     def recently_finished(self, user: str) -> bool:
         return self.clock() - self.finished.get(user.lower(), float("-inf")) < RETRY_AFTER
 
-    def start(self, user: str, work: Callable[[], Any]) -> bool:
+    def start(self, user: str, work: Callable[[], str | None]) -> bool:
+        """Run `work` in the background; what it returns, if anything, is shown as a problem."""
         key = user.lower()
         with self.lock:
             if self.busy(key):
@@ -64,8 +66,11 @@ class Jobs:
 
             def run() -> None:
                 try:
-                    work()
-                    self.errors.pop(key, None)
+                    problem = work()
+                    if problem:
+                        self.errors[key] = str(problem)
+                    else:
+                        self.errors.pop(key, None)
                 except Exception as error:  # the page reports it; the thread mustn't die silently
                     self.errors[key] = str(error)
                 finally:
@@ -113,7 +118,7 @@ def create_app(
     def start_writing(ranking: Ranking) -> bool:
         if writer.client is None:
             return False
-        return jobs.start(ranking.user, lambda: service.write_missing(writer, ranking))
+        return jobs.start(ranking.user, lambda: service.failures(service.write_missing(writer, ranking)))
 
     @app.exception_handler(HTTPException)
     def error_page(request: Request, error: HTTPException) -> Response:
@@ -126,7 +131,7 @@ def create_app(
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request, user: str | None = None) -> Response:
         if user and user.strip():
-            return RedirectResponse(f"/u/{user.strip()}", status_code=303)
+            return RedirectResponse(f"/u/{quote(user.strip(), safe='')}", status_code=303)
         return templates.TemplateResponse(request, "index.html", {})
 
     @app.get("/u/{user}", response_class=HTMLResponse)

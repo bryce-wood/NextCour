@@ -16,7 +16,7 @@ from nextcour.core import shows
 from nextcour.core.entries import from_anilist
 from nextcour.core.shows import Show
 from nextcour.explain import evidence
-from nextcour.explain.writer import Explanation, Item, Writer, template
+from nextcour.explain.writer import TEMPLATE, Explanation, Item, Writer, template
 from nextcour.ingest import anilist
 from nextcour.models.scorer_v0 import Score, ScorerV0
 from nextcour.profile import builder
@@ -114,11 +114,17 @@ def explanations(writer: Writer, ranking: Ranking) -> dict[int, Explanation]:
     }
 
 
-def write_missing(writer: Writer, ranking: Ranking, rows: Sequence[Row] | None = None) -> int:
-    """Have the models write the explanations that aren't cached yet; returns how many it tried."""
+def write_missing(
+    writer: Writer, ranking: Ranking, rows: Sequence[Row] | None = None
+) -> dict[int, Explanation]:
+    """Have the models write the explanations that aren't cached yet; returns what they wrote."""
     items = [row.item for row in (rows if rows is not None else ranking.rows)]
     found = writer.cached(ranking.user, items)
     missing = [item for item in items if item.anilist_id not in found]
-    if missing:
-        writer.write(ranking.user, missing)
-    return len(missing)
+    return writer.write(ranking.user, missing) if missing else {}
+
+
+def failures(written: Mapping[int, Explanation]) -> str | None:
+    """Why some explanations are still templates after a writing run, if any are."""
+    notes = sorted({e.note for e in written.values() if e.writer == TEMPLATE and e.note})
+    return "; ".join(notes) or None
