@@ -31,34 +31,39 @@ from nextcour.explain.gemini import GeminiClient, LLMError
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
 BATCH_SIZE = 10
 MAX_SENTENCES = 3
 MAX_CHARS = 300
 CACHE_DAYS = 30
 TEMPLATE = "template"
 
-# The default order: the writer, then the backup. The blind comparison (compare.py) settles which
-# of the two writes; until then the model with the larger daily quota goes first.
-DEFAULT_MODELS = ("gemini-3.5-flash-lite", "gemini-3.8-flash")
+# The writer, then the backup. 3.8 Flash won the blind comparison 12 to 3 (2026-10-21, with 1 tie
+# and 4 "both bad"); Flash-Lite, with 25 times the daily quota, steps in when it is busy or used up.
+DEFAULT_MODELS = ("gemini-3.8-flash", "gemini-3.5-flash-lite")
 
 SYSTEM = """\
 You write the short reason shown next to each anime on a NextCour recommendation list.
 
 For each show you get its title and its evidence: numbered facts about the show and the viewer's \
 own anime history. Each fact has an ID and says how much it counts for or against the show ("a \
-strong point in its favor", "a slight point against it", and so on).
+strong point in its favor", "a slight point against it", "about neutral", and so on).
 
 Write 1 to 3 sentences for each show:
 - Use only that show's evidence. Never add facts, numbers, opinions or praise of your own (no \
 "you'll love this", no "a masterpiece").
-- Lead with the facts that count most. If a fact counts against the show, say so plainly.
+- Weigh the points against each other and lead with the side that counts more. Mention a point on \
+the other side only if it's at least moderate. Skip facts marked "about neutral" unless there's \
+nothing else to say.
 - Name the real shows, people and numbers from the evidence, and keep the numbers exactly as given.
+- Whenever you name a staff member, say what they did on the show (their role, like directing or \
+the music).
 - Some facts say that, "relative to your other shows", the viewer liked a show more or less than \
 AniList users did. Keep that idea; never turn it into a plain comparison of the two numbers. A 73 \
 can be high for a viewer whose scores run low. Right: "relative to your other shows, you liked \
 Show A more than most viewers (you gave it 73; it averages 75)". Wrong: "you rated Show A above \
 its average".
+- A fact about a series covers several of its entries; treat it as one point about the series.
 - Write to the viewer as "you", in plain, natural English, under 30 words per sentence.
 - Don't mention evidence, IDs, predictions, points or models in the text.
 - Give each show's answer its show_id (S1, S2, ...), and list, for each sentence, the IDs of the \
@@ -144,10 +149,12 @@ class Explanation:
 
 
 def template(item: Item, note: str = "") -> Explanation:
-    """The fallback: the average score (scorer v0's base), then the biggest personal fact, verbatim."""
+    """The fallback, verbatim: the average score (scorer v0's base) and the biggest personal fact,
+    the personal fact first when the average is about neutral."""
     average, *personal = item.evidence
     picked = [e for e in personal if abs(e.effect) >= 0.01][:1]
-    sentences = [Sentence(e.fact, (e.id,)) for e in [average, *picked]]
+    order = [*picked, average] if average.neutral else [average, *picked]
+    sentences = [Sentence(e.fact, (e.id,)) for e in order]
     return Explanation(item.anilist_id, tuple(sentences), TEMPLATE, note=note)
 
 
@@ -172,6 +179,8 @@ def check(item: Item, key: str, raw: Iterable[Mapping[str, Any]]) -> tuple[list[
             problem = "too long"
         elif META.search(text):
             problem = "talks about the prediction or the evidence"
+        elif unnamed := _roles_missing(text, [by_id[i] for i in cited]):
+            problem = f"names {unnamed} without saying what they did"
         else:
             allowed = _numbers(" ".join([item.title, *(by_id[i].fact for i in cited)]))
             if invented := [n for n in _numbers(text) if n not in allowed]:
@@ -181,6 +190,30 @@ def check(item: Item, key: str, raw: Iterable[Mapping[str, Any]]) -> tuple[list[
         elif len(kept) < MAX_SENTENCES:
             kept.append(Sentence(text, tuple(i.removeprefix(key) for i in cited)))
     return kept, dropped
+
+
+# Words that show a sentence gives a staff member's role, by AniList role.
+ROLE_WORDS = {
+    "Director": ("direct",),
+    "Original Creator": ("creat", "author", "original", "manga", "novel"),
+    "Original Story": ("story", "author", "original", "manga", "novel"),
+    "Series Composition": ("series composition", "script", "writ", "composition"),
+    "Character Design": ("character design", "design"),
+    "Music": ("music", "compos", "soundtrack"),
+}
+
+
+def _roles_missing(text: str, cited: Sequence[Evidence]) -> str | None:
+    """The first staff member a sentence names without their role, if any."""
+    lowered = text.casefold()
+    for e in cited:
+        if e.kind != "staff" or e.label.casefold() not in lowered:
+            continue
+        roles = [r.strip() for r in (e.role or "").split(",") if r.strip()]
+        words = [w for r in roles for w in ROLE_WORDS.get(r, (r.casefold(),))]
+        if not any(w in lowered for w in words):
+            return e.label
+    return None
 
 
 def _numbers(text: str) -> list[str]:

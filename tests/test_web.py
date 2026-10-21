@@ -30,6 +30,7 @@ def row(rank, anilist_id, title):
             {
                 "votes": 42,
                 "title": "Mob Psycho 100",
+                "anilist_id": 9,
                 "my_score": 95,
                 "status": "COMPLETED",
                 "average_score": 86,
@@ -256,3 +257,22 @@ def test_watch_time_reads_naturally():
     assert watch_time(show(1, "x", episodes=1)) == "about 24 minutes"
     assert watch_time(show(1, "x", episodes=26)) == "about 10 hours"
     assert watch_time(show(1, "x", episodes=None)) is None
+
+
+def test_series_watched_lists_earlier_entries_as_context():
+    from helpers import entry
+
+    from nextcour.app.service import series_watched
+
+    entries = [
+        entry(1, aired="2018-04-01", score=92),
+        entry(2, aired="2020-01-01", score=0, status="DROPPED", progress=3),
+        entry(3, aired="2021-01-01", status="PLANNING", score=0),
+        entry(4, aired="2019-01-01", score=70),
+    ]
+    franchise_of = {1: 10, 2: 10, 3: 10, 5: 10, 4: 20}
+    assert series_watched(5, entries, franchise_of) == (
+        "Show 1 (you gave it 92/100)",
+        "Show 2 (dropped, unscored)",
+    )
+    assert series_watched(99, entries, franchise_of) == ()

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from nextcour.app.feedback import FeedbackStore
 from nextcour.candidates.planning import HeldBack, by_watch_order
 from nextcour.core import shows
-from nextcour.core.entries import from_anilist
+from nextcour.core.entries import WATCHED, ListEntry, from_anilist
 from nextcour.core.shows import Show
 from nextcour.explain import evidence
 from nextcour.explain.writer import TEMPLATE, Explanation, Item, Writer, template
@@ -29,6 +29,9 @@ class Row:
     score: Score
     average_rank: int  # where sorting by average score alone would put it
     item: Item  # its evidence, for the writer
+    # Context, not a reason: entries of the same series already on the list. Scorer v0 doesn't use
+    # them, so the explanation can't cite them; the page shows them beside it.
+    series: tuple[str, ...] = ()
 
     @property
     def watch_time(self) -> str | None:
@@ -100,9 +103,39 @@ class Planner:
         rows = []
         for i, score in enumerate(scores, 1):
             show = details[score.anilist_id]
-            item = Item(show.anilist_id, show.title, tuple(evidence.build(score, show.title)))
-            rows.append(Row(i, show, score, average_rank[score.anilist_id], item))
+            item = Item(
+                show.anilist_id, show.title, tuple(evidence.build(score, show.title, self.franchise_of))
+            )
+            series = series_watched(show.anilist_id, entries, self.franchise_of)
+            rows.append(Row(i, show, score, average_rank[score.anilist_id], item, series))
         return Ranking(account["name"], rows, held, hidden, len(profile.entries))
+
+
+def series_watched(
+    anilist_id: int, entries: Sequence[ListEntry], franchise_of: Mapping[int, int]
+) -> tuple[str, ...]:
+    """The other entries of this show's series that are on the list as watched, earliest first."""
+    franchise = franchise_of.get(anilist_id)
+    if franchise is None:
+        return ()
+    same = [
+        e
+        for e in entries
+        if e.anilist_id != anilist_id and franchise_of.get(e.anilist_id) == franchise and e.status in WATCHED
+    ]
+    same.sort(key=lambda e: (e.aired is None, e.aired, e.anilist_id))
+    return tuple(f"{e.title} ({_take(e)})" for e in same)
+
+
+def _take(entry: ListEntry) -> str:
+    status = {
+        "CURRENT": "watching",
+        "PAUSED": "paused",
+        "DROPPED": "dropped",
+        "REPEATING": "rewatching",
+    }.get(entry.status)
+    score = f"you gave it {entry.score:g}/100" if entry.score else "unscored"
+    return f"{status}, {score}" if status else score
 
 
 def explanations(writer: Writer, ranking: Ranking) -> dict[int, Explanation]:

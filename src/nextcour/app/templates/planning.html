@@ -35,6 +35,7 @@
       {{ row.watch_time or "length not known yet" }}{% if row.show.average_score %} · averages {{ row.show.average_score }}{% endif %}
     </span>
   </div>
+  {% if row.series %}<p class="meta">From a series you've watched: {{ row.series | join("; ") }}</p>{% endif %}
   <p class="why">{{ e.text }}</p>
   <details>
     <summary>Everything that moved it · {{ "plain version" if e.writer == "template" else "written by " ~ e.writer }}</summary>

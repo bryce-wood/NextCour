@@ -207,6 +207,7 @@ def create_app(
                     "rank_by_average_score": row.average_rank,
                     "average_score": row.show.average_score,
                     "watch_minutes": row.show.watch_minutes,
+                    "series_watched": list(row.series),
                     "explanation": found[row.show.anilist_id].as_dict(),
                     "evidence": [
                         {"id": e.id, "kind": e.kind, "fact": e.fact, "effect": e.described_effect}

@@ -18,9 +18,10 @@ from nextcour.explain.writer import (
 from nextcour.models.scorer_v0 import Contribution, Score
 
 
-def carrier(title, score, average, residual, weight=1.0, status="COMPLETED"):
+def carrier(title, score, average, residual, weight=1.0, status="COMPLETED", anilist_id=7):
     return {
         "title": title,
+        "anilist_id": anilist_id,
         "my_score": score,
         "status": status,
         "average_score": average,
@@ -269,3 +270,58 @@ def test_votes_are_stored_and_checked():
 
 def test_evidence_ids_are_letters():
     assert all(isinstance(e, Evidence) and e.id.isalpha() for e in item().evidence)
+
+
+# --- What gets cited (prompt version 5) --------------------------------------------------------
+
+
+def link(anilist_id, title, value, residual, votes=30):
+    facts = {"votes": votes, **carrier(title, 80, 80, residual, anilist_id=anilist_id)}
+    return Contribution("crowd_link", f"show:{anilist_id}", title, value, facts)
+
+
+def score_of(*personal, share=0.9):
+    average = Contribution(
+        "average_score", "average_score", "Show", 0.5, {"average_score": 84, "share_below": share}
+    )
+    prior = 0.5 + 0.92 * (share - 0.5)
+    average = Contribution(average.kind, average.key, average.label, prior, average.facts)
+    return Score(1, prior, prior, 0.0, 0.0, (average, *personal))
+
+
+def test_near_ties_are_not_cited():
+    items = evidence.build(score_of(link(7, "Near Tie", -0.02, -0.05), link(8, "Clear", 0.03, 0.3)), "Show")
+    assert [e.label for e in items[1:]] == ["Clear"]
+
+
+def test_links_from_one_series_become_one_point():
+    links = (link(7, "Slime Season 2", 0.02, 0.2), link(8, "Slime", 0.03, 0.25), link(9, "Other", 0.01, 0.2))
+    items = evidence.build(score_of(*links), "Show", franchise_of={7: 100, 8: 100})
+    series = items[1]
+    assert series.label == "Slime series" and series.effect == pytest.approx(0.05)
+    assert "Slime Season 2: 30 votes" in series.fact and "Slime: 30 votes" in series.fact
+    assert [e.label for e in items] == ["Show", "Slime series", "Other"]
+
+
+def test_a_middling_average_is_neutral_and_the_template_leads_with_the_personal_fact():
+    items = evidence.build(score_of(link(8, "Clear", 0.03, 0.3), share=0.55), "Show")
+    assert items[0].described_effect == "about neutral"
+    explanation = template(Item(1, "Show", tuple(items)))
+    assert [s.evidence for s in explanation.sentences] == [("b",), ("a",)]
+
+
+def test_staff_must_come_with_their_role():
+    staff = Evidence(
+        "b", "staff", "Taku Iwasaki", "Taku Iwasaki worked on it as its music composer.", 0.02, "Music"
+    )
+    shown = Item(1, "Show", (evidence.build(score_of(), "Show")[0], staff))
+    kept, dropped = check(
+        shown,
+        "S1",
+        [
+            {"text": "You've liked shows Taku Iwasaki worked on.", "evidence": ["S1b"]},
+            {"text": "Taku Iwasaki composed its music.", "evidence": ["S1b"]},
+        ],
+    )
+    assert [s.text for s in kept] == ["Taku Iwasaki composed its music."]
+    assert dropped[0].startswith("names Taku Iwasaki without saying what they did")
