@@ -255,11 +255,15 @@ def _from_reply(batch: Sequence[tuple[str, Item]], data: Any, model: str) -> dic
     out = {}
     for key, item in batch:
         kept, dropped = check(item, key, answers.get(key, []))
-        if kept:
+        # Phase 1's gate: every explanation names real numbers. The template always does.
+        has_numbers = any(NUMBER.search(s.text) for s in kept)
+        if kept and has_numbers:
             out[item.anilist_id] = Explanation(item.anilist_id, tuple(kept), model, tuple(dropped))
         else:
             answered = dropped or key in answers
             reason = f"{model} gave no usable sentence" if answered else f"{model} skipped it"
+            if kept:
+                reason = f"{model}'s sentences had no numbers"
             fallback = template(item, reason)
             out[item.anilist_id] = Explanation(
                 item.anilist_id, fallback.sentences, TEMPLATE, tuple(dropped), fallback.note

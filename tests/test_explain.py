@@ -202,6 +202,16 @@ def test_a_show_with_no_usable_sentence_gets_the_template():
     assert results[1].dropped and "no usable sentence" in results[1].note
 
 
+def test_an_explanation_without_numbers_gets_the_template():
+    vague = {
+        "explanations": [
+            {"show_id": "S1", "sentences": [{"text": "Fans of Mob Psycho 100 like it.", "evidence": ["S1b"]}]}
+        ]
+    }
+    results, _ = write_batch([item()], FakeModels({"m": vague}), ["m"])
+    assert results[1].writer == TEMPLATE and "no numbers" in results[1].note
+
+
 def test_the_writer_caches_what_a_model_answered_but_not_failures():
     store = ExplanationStore(":memory:")
     models = FakeModels({"m": ModelUnavailable("busy")})
