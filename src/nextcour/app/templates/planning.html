@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% set user_url = ranking.user | urlencode %}
+{% block title %}{{ ranking.user }}'s Planning list · NextCour{% endblock %}
+{% block content %}
+<h1>{{ ranking.user }}'s Planning list</h1>
+<p class="muted small">
+  {{ ranking.rows | length }} shows ready to watch, ranked by predicted enjoyment (scorer v0), from the
+  {{ ranking.history_size }} shows you've watched.
+  {% if ranking.held %}{{ ranking.held | length }} more are <a href="#held">held back</a>.{% endif %}
+  <a href="/api/u/{{ user_url }}/planning">JSON</a>
+</p>
+
+{% if writing %}
+  {% with user=ranking.user, writing=True %}{% include "_status.html" %}{% endwith %}
+{% elif waiting %}
+  <div id="status" class="notice">
+    {{ waiting }} explanation{{ "s" if waiting != 1 }} still use the plain version.
+    {% if error %}The last attempt failed: {{ error }}.{% endif %}
+    {% if can_write %}
+      <button hx-post="/u/{{ user_url }}/write" hx-target="#status" hx-swap="outerHTML">Write them now</button>
+    {% else %}
+      Add GEMINI_API_KEY to .env to have them written.
+    {% endif %}
+  </div>
+{% endif %}
+
+{% for row in ranking.rows %}
+{% set show_id = row.show.anilist_id %}
+{% set e = explanations[show_id] %}
+<div class="card" id="show-{{ show_id }}">
+  <div class="row-head">
+    <span class="rank">#{{ row.rank }}</span>
+    <span class="title"><a href="https://anilist.co/anime/{{ show_id }}" target="_blank" rel="noopener">{{ row.show.title }}</a></span>
+    <span class="meta">
+      {{ row.watch_time or "length not known yet" }}{% if row.show.average_score %} · averages {{ row.show.average_score }}{% endif %}
+    </span>
+  </div>
+  <p class="why">{{ e.text }}</p>
+  <details>
+    <summary>Everything that moved it · {{ "plain version" if e.writer == "template" else "written by " ~ e.writer }}</summary>
+    <ul class="evidence">
+      {% for ev in row.item.evidence %}<li>{{ ev.fact }} <span class="effect">({{ ev.described_effect }})</span></li>{% endfor %}
+    </ul>
+    <p class="small muted">
+      Predicted enjoyment {{ "%.3f" | format(row.score.predicted) }} on a 0 to 1 scale. Sorting by average score
+      alone would put it at #{{ row.average_rank }}.
+      {% if e.dropped %}The checker removed {{ e.dropped | length }} sentence{{ "s" if e.dropped | length != 1 }} that didn't match the evidence.{% endif %}
+    </p>
+  </details>
+  <div class="buttons">
+    <span id="pick-{{ show_id }}">
+      <button hx-post="/u/{{ user_url }}/pick/{{ show_id }}" hx-target="#pick-{{ show_id }}" hx-swap="innerHTML">I'm watching this</button>
+    </span>
+    <button hx-post="/u/{{ user_url }}/not-interested/{{ show_id }}">Not interested</button>
+  </div>
+</div>
+{% endfor %}
+
+{% if ranking.held %}
+<h2 id="held">Held back</h2>
+<p class="muted small">Not out yet, or waiting on an earlier entry you haven't finished. Shown so nothing
+disappears; some franchises don't need watching in order.</p>
+<div class="card">
+  <ul class="evidence">
+    {% for h in ranking.held | sort(attribute="show.title") %}
+      <li><a href="https://anilist.co/anime/{{ h.show.anilist_id }}" target="_blank" rel="noopener">{{ h.show.title }}</a>
+        <span class="muted">: {{ h.waiting_on | join("; ") }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if ranking.hidden %}
+<h2>Not interested</h2>
+<div class="card">
+  <ul class="evidence">
+    {% for s in ranking.hidden %}
+      <li>{{ s.title }} <button hx-post="/u/{{ user_url }}/interested/{{ s.anilist_id }}">Undo</button></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if picks %}
+<h2>Your picks</h2>
+<div class="card">
+  <ul class="evidence">
+    {% for p in picks %}<li>{{ p.title }} <span class="muted">(ranked #{{ p.rank }} when picked)</span></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

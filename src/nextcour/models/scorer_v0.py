@@ -107,6 +107,12 @@ class ScorerV0:
         percentile = mid_rank(show.average_score, self._averages)
         return 0.5 + self._trust * (percentile - 0.5)
 
+    def average_percentile(self, show: Show) -> float | None:
+        """Share of my history's average scores below this show's, ties counting half."""
+        if show.average_score is None or not self._averages:
+            return None
+        return round(mid_rank(show.average_score, self._averages), 3)
+
     def affinity(self, feature_key: str) -> float:
         """How much more than the crowd suggested I enjoyed shows with this feature, shrunk."""
         return self._sum[feature_key] / (self._evidence[feature_key] + TASTE_SHRINK)
@@ -119,7 +125,11 @@ class ScorerV0:
                 "average_score",
                 show.title,
                 prior,
-                {"average_score": show.average_score, "above_share_of_history": round(prior, 3)},
+                {
+                    "average_score": show.average_score,
+                    "share_below": self.average_percentile(show),
+                    "history_size": len(self._averages),
+                },
             )
         ]
 
@@ -184,8 +194,11 @@ class ScorerV0:
                 "title": p.entry.title,
                 "anilist_id": p.entry.anilist_id,
                 "my_score": p.entry.score or None,
+                "status": p.entry.status,
+                "average_score": self.shows[p.entry.anilist_id].average_score,
                 "enjoyment": round(p.enjoyment, 3),
                 "crowd_prior": round(p.enjoyment - self.residual[p.entry.anilist_id], 3),
+                "residual": round(self.residual[p.entry.anilist_id], 3),
                 "weight": round(p.weight * relevance, 3),
             }
             for p, relevance in carriers

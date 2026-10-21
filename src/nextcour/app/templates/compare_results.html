@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Writer comparison results · NextCour{% endblock %}
+{% block content %}
+<h1>Writer comparison: results</h1>
+<p class="muted">{{ votes | length }} of {{ comparison["items"] | length }} shows voted.
+{% if votes | length < comparison["items"] | length %}<a href="/compare">Finish voting</a> first for a fair count.{% endif %}</p>
+
+<table>
+  <tr><th>Model</th><th>Votes</th><th>Plain version stood in</th><th>Sentences the checker removed</th><th>Seconds per batch of {{ comparison.batch_size }}</th></tr>
+  {% for t in tallies %}
+  <tr>
+    <td>{{ t.model }}</td>
+    <td>{{ t.summary }}</td>
+    <td>{{ t.templates }} of {{ comparison["items"] | length }}</td>
+    <td>{{ t.dropped }}</td>
+    <td>{{ comparison.seconds_per_batch[t.model] | join(", ") }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="small muted">Free-tier limits: Flash models allow 20 requests a day and Flash-Lite 500. The winner writes,
+and the other model becomes its backup. Tell Claude which won, or set the order in
+<code>src/nextcour/explain/writer.py</code> (<code>DEFAULT_MODELS</code>).</p>
+
+<h2>Show by show</h2>
+<table>
+  <tr><th>Show</th><th>A</th><th>B</th><th>Your vote</th></tr>
+  {% for item in comparison["items"] %}
+  <tr>
+    <td>#{{ item.rank }} {{ item.title }}</td>
+    <td>{{ item.a_model }}</td>
+    <td>{{ item.b_model }}</td>
+    <td>{{ choices.get(votes.get(item.anilist_id), "not voted") }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

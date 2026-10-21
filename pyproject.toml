@@ -9,7 +9,11 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5.6",
+    "fastapi>=0.156.4",
     "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "tzdata>=2026.5 ; sys_platform == 'win32'",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
@@ -21,6 +25,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.15.1",
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]

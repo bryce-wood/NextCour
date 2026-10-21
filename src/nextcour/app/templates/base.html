@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}NextCour{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --bg: #fbfaf8; --panel: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e4e2dd;
+      --accent: #3557c9; --accent-soft: #e8edfb; --good: #2f7d4f; --warn: #9a5b00; --bad: #a33a3a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16171a; --panel: #1f2024; --text: #ececee; --muted: #9b9ba3; --line: #34353b;
+        --accent: #8ea6ff; --accent-soft: #262c40; --good: #6fcf97; --warn: #f2b45a; --bad: #f08080;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.site { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    header.site a.brand { font-weight: 700; font-size: 1.25rem; color: var(--text); text-decoration: none; }
+    header.site span { color: var(--muted); font-size: 0.9rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 4px; }
+    h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+    a { color: var(--accent); }
+    .muted { color: var(--muted); }
+    .small { font-size: 0.875rem; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 14px 16px; margin: 10px 0;
+    }
+    .row-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+    .rank { font-weight: 700; color: var(--accent); min-width: 2.2em; }
+    .title { font-weight: 600; flex: 1 1 auto; }
+    .title a { color: var(--text); text-decoration: none; }
+    .title a:hover { text-decoration: underline; }
+    .meta { color: var(--muted); font-size: 0.875rem; }
+    .why { margin: 8px 0 6px; }
+    .buttons { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+    button {
+      font: inherit; font-size: 0.875rem; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+    button.chosen { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+    .picked { color: var(--good); font-size: 0.875rem; }
+    .notice {
+      border-left: 3px solid var(--warn); background: var(--panel); padding: 8px 12px; margin: 12px 0;
+      border-radius: 4px;
+    }
+    details summary { cursor: pointer; color: var(--muted); font-size: 0.875rem; }
+    ul.evidence { margin: 6px 0; padding-left: 20px; font-size: 0.875rem; }
+    ul.evidence li { margin: 3px 0; }
+    .effect { color: var(--muted); font-size: 0.8rem; }
+    form.user input {
+      font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line);
+      background: var(--panel); color: var(--text); width: min(320px, 100%);
+    }
+    form.user button { font-size: 1rem; padding: 8px 14px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+    @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+    .pair > div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+    .pair h3 { margin: 0 0 4px; font-size: 0.95rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    footer { margin-top: 48px; color: var(--muted); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+<main>
+  <header class="site">
+    <a class="brand" href="/">NextCour</a>
+    <span>explainable anime recommendations for AniList</span>
+  </header>
+  {% block content %}{% endblock %}
+  <footer>
+    Show data and lists from <a href="https://anilist.co">AniList</a>, through its public API.
+    Franchises from <a href="https://github.com/manami-project/anime-offline-database">anime-offline-database</a>
+    (ODbL). NextCour is a personal, non-commercial project, not affiliated with AniList.
+  </footer>
+</main>
+</body>
+</html>

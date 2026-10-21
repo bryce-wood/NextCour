@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Writer comparison · NextCour{% endblock %}
+{% block content %}
+<h1>Which writer explains better?</h1>
+<p>
+  Two Gemini models explained the same {{ comparison["items"] | length }} shows from your Planning list
+  ({{ comparison.user }}, {{ comparison.created_at[:10] }}), spread from the top of the ranking to the bottom.
+  For each show, which model is A and which is B is random. Vote on each, then
+  <a href="/compare/results">see which model wrote what</a>.
+</p>
+<div class="notice small">
+  <strong>What to judge.</strong>
+  <ul>
+    <li><strong>Faithful:</strong> it says only what the evidence says. Open "The evidence" to check.</li>
+    <li><strong>Accurate about "relative to your other shows":</strong> some facts compare where a show sits among
+      <em>your</em> shows with where AniList users put it. Watch for explanations that turn this into a plain
+      comparison of the two numbers, like "you scored it above its average" when you gave it 73 and it averages 75.</li>
+    <li><strong>Specific:</strong> real show names and numbers, no generic praise.</li>
+    <li><strong>Useful:</strong> would it help you decide whether to start the show?</li>
+  </ul>
+  "Plain version" means the model's answer failed and the fixed template stood in, which counts against it.
+</div>
+<p id="progress" class="muted">{{ votes | length }} of {{ comparison["items"] | length }} voted.</p>
+
+{% for item in comparison["items"] %}
+<div class="card">
+  <div class="row-head">
+    <span class="rank">#{{ item.rank }}</span>
+    <span class="title">{{ item.title }}</span>
+  </div>
+  <details>
+    <summary>The evidence</summary>
+    <ul class="evidence">
+      {% for ev in item.evidence %}<li>{{ ev.fact }} <span class="effect">({{ ev.effect }})</span></li>{% endfor %}
+    </ul>
+  </details>
+  <div class="pair">
+    {% for side in ["a", "b"] %}
+    {% set out = item[side] %}
+    <div>
+      <h3>{{ side | upper }}{% if out.writer == "template" %} <span class="muted small">(plain version: the model's answer failed)</span>{% endif %}</h3>
+      {% for s in out.sentences %}{{ s.text }} {% endfor %}
+      {% if out.dropped %}<p class="small muted">The checker removed {{ out.dropped | length }} sentence{{ "s" if out.dropped | length != 1 }}.</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% include "_vote.html" %}
+</div>
+{% endfor %}
+<p><a href="/compare/results">See the results</a></p>
+{% endblock %}

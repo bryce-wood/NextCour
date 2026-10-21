@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Which of your planned shows should you start?</h1>
+<p class="muted">Enter a public AniList user name. NextCour ranks the shows on that Planning list by how
+much it predicts you'll enjoy them, and says why for each one.</p>
+<form class="user" action="/" method="get">
+  <input name="user" placeholder="AniList user name" autofocus required aria-label="AniList user name">
+  <button class="primary" type="submit">Rank my Planning list</button>
+</form>
+<p class="small muted">Your list is fetched when you ask and deleted from NextCour's cache within an hour.</p>
+<p class="small"><a href="/compare">Writer comparison</a></p>
+{% endblock %}

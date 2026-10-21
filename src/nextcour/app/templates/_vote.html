@@ -1,0 +1,11 @@
+<div class="buttons" id="vote-{{ item.anilist_id }}">
+  {% for key, label in choices.items() %}
+    <button class="{{ 'chosen' if votes.get(item.anilist_id) == key }}"
+      hx-post="/compare/{{ comparison.id }}/{{ item.anilist_id }}/{{ key }}"
+      hx-target="#vote-{{ item.anilist_id }}" hx-swap="outerHTML">{{ label }}</button>
+  {% endfor %}
+</div>
+{% if oob_progress %}
+<p id="progress" class="muted" hx-swap-oob="true">{{ votes | length }} of {{ comparison["items"] | length }} voted.
+  {% if votes | length == comparison["items"] | length %}<a href="/compare/results">All done: see the results</a>{% endif %}</p>
+{% endif %}

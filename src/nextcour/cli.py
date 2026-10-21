@@ -13,7 +13,6 @@ import sys
 import duckdb
 
 from nextcour.core import manifest, paths, shows
-from nextcour.core.entries import from_anilist
 from nextcour.core.shows import Show
 from nextcour.ingest import anilist, catalog, coverage, franchises, mal
 
@@ -131,43 +130,112 @@ def _commit() -> dict[str, object]:
     return {"commit": git("rev-parse", "HEAD"), "uncommitted_changes": bool(git("status", "--porcelain"))}
 
 
-def cmd_rank(args: argparse.Namespace) -> None:
-    from nextcour.candidates import planning as planning_candidates
-    from nextcour.models.scorer_v0 import ScorerV0
-    from nextcour.profile import builder
+def _planner(release: str = catalog.RELEASE):
+    from nextcour.app.feedback import FeedbackStore
+    from nextcour.app.service import Planner
 
     con = duckdb.connect()
-    catalog.load(con, args.release)
-    franchise_of = franchises.lookup(con, args.release)
-    with _client() as client:
-        user = anilist.fetch_user(client, args.user)
-        entries = [from_anilist(e) for e in anilist.fetch_list(client, args.user)]
-        details, _ = _show_details(client, [e.anilist_id for e in entries])
-    history = [e for e in entries if e.status != "PLANNING"]
-    planning = [
-        details[e.anilist_id]
-        for e in entries
-        if e.status == "PLANNING" and e.format not in builder.EXCLUDED_FORMATS and e.anilist_id in details
-    ]
-    statuses = {e.anilist_id: e.status for e in entries}
-    ready, held = planning_candidates.by_watch_order(planning, statuses, dt.date.today())
-    scorer = ScorerV0(builder.build(history, franchise_of, user["favourite_anime"]), details)
-    scores = sorted((scorer.score(s) for s in ready), key=lambda s: s.predicted, reverse=True)
-    by_average = sorted(scores, key=lambda s: s.crowd_prior, reverse=True)
-    average_rank = {s.anilist_id: i for i, s in enumerate(by_average, 1)}
-    print(f"{args.user}'s Planning list: {len(scores)} shows ready to watch, ranked by scorer v0")
+    catalog.load(con, release)
+    return Planner(franchises.lookup(con, release), _client, FeedbackStore(paths.APP_DB))
+
+
+def _writer(models: list[str] | None = None, timeout: float | None = None):
+    """The explanation writer: Gemini's free tier if GEMINI_API_KEY is set, templates otherwise."""
+    from nextcour.core import settings
+    from nextcour.explain import gemini
+    from nextcour.explain.writer import DEFAULT_MODELS, ExplanationStore, Writer
+
+    key = settings.gemini_api_key()
+    client = (
+        gemini.GeminiClient(key, gemini.UsageLog(paths.APP_DB), timeout=timeout or gemini.TIMEOUT)
+        if key
+        else None
+    )
+    if client is None:
+        print("No GEMINI_API_KEY in .env: explanations will use templates.")
+    return Writer(ExplanationStore(paths.APP_DB), client, tuple(models or DEFAULT_MODELS))
+
+
+def cmd_rank(args: argparse.Namespace) -> None:
+    ranking = _planner(args.release).ranking(args.user)
+    print(
+        f"{ranking.user}'s Planning list: {len(ranking.rows)} shows ready to watch, ranked by scorer v0"
+        f" (profile from {ranking.history_size} shows)"
+    )
     print("  rank  predicted = prior + taste + links   (rank by average score)")
-    for i, s in enumerate(scores[: args.top], 1):
-        print(
-            f"  {i:>4}  {s.predicted:.3f} = {s.crowd_prior:.3f} {0.5 * s.taste:+.3f} {0.5 * s.links:+.3f}"
-            f"   ({average_rank[s.anilist_id]:>3})  {details[s.anilist_id].title}"
-        )
+    for row in ranking.rows[: args.top]:
+        s = row.score
+        parts = f"{s.predicted:.3f} = {s.crowd_prior:.3f} {0.5 * s.taste:+.3f} {0.5 * s.links:+.3f}"
+        print(f"  {row.rank:>4}  {parts}   ({row.average_rank:>3})  {row.show.title}")
         for c in s.contributions[1 : 1 + args.reasons]:
             print(f"          {c.value:+.3f}  {c.kind}: {c.label}")
-    if held:
-        print(f"\nHeld back, {len(held)} shows: not out yet, or waiting on an earlier entry:")
-        for h in sorted(held, key=lambda h: h.show.title):
+    if ranking.held:
+        print(f"\nHeld back, {len(ranking.held)} shows: not out yet, or waiting on an earlier entry:")
+        for h in sorted(ranking.held, key=lambda h: h.show.title):
             print(f"  {h.show.title}  <- {'; '.join(h.waiting_on)}")
+    if ranking.hidden:
+        print(f"\nNot interested: {', '.join(s.title for s in ranking.hidden)}")
+
+
+def cmd_explain(args: argparse.Namespace) -> None:
+    from nextcour.app import service
+
+    ranking = _planner(args.release).ranking(args.user)
+    rows = ranking.rows[: args.top]
+    writer = _writer(args.model)
+    if args.rewrite:
+        writer.store.forget_user(ranking.user)
+    written = service.write_missing(writer, ranking, rows) if not args.cached_only else 0
+    found = service.explanations(writer, ranking)
+    client = writer.client
+    print(f"{ranking.user}: {len(rows)} shows; {written} explanations written now")
+    if client is not None:
+        for model in writer.models:
+            print(f"  {model}: {client.remaining_today(model)} free requests left today (Pacific time)")
+    for row in rows:
+        explanation = found[row.show.anilist_id]
+        print(f"\n{row.rank:>3}. {row.show.title}  [{explanation.writer}]  {row.watch_time or ''}")
+        print(f"     {explanation.text}")
+        for reason in explanation.dropped:
+            print(f"     (checker dropped a sentence that {reason})")
+        if explanation.note and explanation.writer == "template":
+            print(f"     (template: {explanation.note})")
+        if args.evidence:
+            for e in row.item.evidence:
+                print(f"       {e.id}. [{e.described_effect}] {e.fact}")
+
+
+def cmd_compare_writers(args: argparse.Namespace) -> None:
+    from nextcour.explain import compare
+
+    writer = _writer(timeout=600.0)
+    if writer.client is None:
+        sys.exit("The comparison needs GEMINI_API_KEY in .env.")
+    ranking = _planner(args.release).ranking(args.user)
+    positions = compare.spread(len(ranking.rows), args.shows)
+    rows = [(ranking.rows[i].rank, ranking.rows[i].item) for i in positions]
+    models = (args.models[0], args.models[1])
+    for model in models:
+        print(f"{model}: {writer.client.remaining_today(model)} free requests left today")
+    comparison = compare.prepare(ranking.user, rows, writer.client, models, seed=args.seed)
+    path = compare.save(comparison)
+    for t in compare.tally(comparison, {}):
+        print(
+            f"{t.model}: template stood in for {t.templates} shows; the checker dropped {t.dropped} sentences"
+        )
+    print(f"Wrote {path}. Vote at http://127.0.0.1:8000/compare after `uv run nextcour serve`.")
+
+
+def cmd_serve(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    from nextcour.app.web import create_app
+    from nextcour.explain import compare
+
+    planner = _planner(args.release)
+    app = create_app(planner, _writer(), planner.feedback, compare.Votes(paths.APP_DB))
+    print(f"NextCour is at http://{args.host}:{args.port}/ (Ctrl+C stops it)")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
 
 
 def cmd_works_for_me(args: argparse.Namespace) -> None:
@@ -294,6 +362,32 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--reasons", type=int, default=3, help="how many pieces of evidence to print per show")
     p.add_argument("--release", default=catalog.RELEASE)
     p.set_defaults(run=cmd_rank)
+
+    p = sub.add_parser("explain", help="write (and cache) explanations for a user's ranked Planning list")
+    p.add_argument("--user", required=True, help="AniList user")
+    p.add_argument("--top", type=int, default=1000, help="only the top N shows")
+    p.add_argument("--model", action="append", help="Gemini model to use, in order (repeatable)")
+    p.add_argument("--evidence", action="store_true", help="print each show's evidence too")
+    p.add_argument("--cached-only", action="store_true", help="don't call any model")
+    p.add_argument("--rewrite", action="store_true", help="forget this user's cached explanations first")
+    p.add_argument("--release", default=catalog.RELEASE)
+    p.set_defaults(run=cmd_explain)
+
+    p = sub.add_parser("serve", help="run the web page at http://127.0.0.1:8000/")
+    p.add_argument("--host", default="127.0.0.1", help="127.0.0.1 keeps it on this computer")
+    p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--release", default=catalog.RELEASE)
+    p.set_defaults(run=cmd_serve)
+
+    p = sub.add_parser("compare-writers", help="both writer models explain the same shows, for a blind vote")
+    p.add_argument("--user", required=True, help="AniList user")
+    p.add_argument("--shows", type=int, default=20, help="how many shows, spread down the list")
+    p.add_argument(
+        "--models", nargs=2, default=["gemini-3.8-flash", "gemini-3.5-flash-lite"], help="the two models"
+    )
+    p.add_argument("--seed", type=int, help="fix which model is A and which is B")
+    p.add_argument("--release", default=catalog.RELEASE)
+    p.set_defaults(run=cmd_compare_writers)
 
     p = sub.add_parser(
         "works-for-me", help="the 'works for me' test: scorer v0 vs. average score on my frozen shows"

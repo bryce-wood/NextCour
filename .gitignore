@@ -12,6 +12,9 @@ docs/
 CLAUDE.md
 frozen/
 
+# Local tool settings (Claude Code's preview config)
+.claude/
+
 # Python
 .venv/
 __pycache__/

@@ -59,6 +59,15 @@ class Show:
     # AniList's airing status: FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED or HIATUS.
     status: str | None = None
     aired_by: dt.date | None = None  # the latest day the start date could mean ("2027" -> 2027-12-31)
+    episodes: int | None = None  # None while the count isn't known
+    duration: int | None = None  # minutes per episode
+
+    @property
+    def watch_minutes(self) -> int | None:
+        """Total watch time, if AniList knows the episode count and length."""
+        if not self.episodes or not self.duration:
+            return None
+        return self.episodes * self.duration
 
     def link_votes(self, other: Show) -> int:
         """Net votes for the crowd's link between this show and `other`, from either side."""
@@ -123,6 +132,8 @@ def from_anilist(media: dict[str, Any]) -> Show:
         follows=tuple(follows),
         status=media.get("status"),
         aired_by=fuzzy_date(media.get("startDate"), latest=True),
+        episodes=media.get("episodes"),
+        duration=media.get("duration"),
     )
 
 
