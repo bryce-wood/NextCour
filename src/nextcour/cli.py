@@ -149,7 +149,8 @@ def cmd_rank(args: argparse.Namespace) -> None:
         for e in entries
         if e.status == "PLANNING" and e.format not in builder.EXCLUDED_FORMATS and e.anilist_id in details
     ]
-    ready, held = planning_candidates.by_watch_order(planning, {e.anilist_id: e.status for e in entries})
+    statuses = {e.anilist_id: e.status for e in entries}
+    ready, held = planning_candidates.by_watch_order(planning, statuses, dt.date.today())
     scorer = ScorerV0(builder.build(history, franchise_of, user["favourite_anime"]), details)
     scores = sorted((scorer.score(s) for s in ready), key=lambda s: s.predicted, reverse=True)
     by_average = sorted(scores, key=lambda s: s.crowd_prior, reverse=True)
@@ -164,7 +165,7 @@ def cmd_rank(args: argparse.Namespace) -> None:
         for c in s.contributions[1 : 1 + args.reasons]:
             print(f"          {c.value:+.3f}  {c.kind}: {c.label}")
     if held:
-        print(f"\nHeld back, {len(held)} shows waiting on an earlier entry:")
+        print(f"\nHeld back, {len(held)} shows: not out yet, or waiting on an earlier entry:")
         for h in sorted(held, key=lambda h: h.show.title):
             print(f"  {h.show.title}  <- {'; '.join(h.waiting_on)}")
 

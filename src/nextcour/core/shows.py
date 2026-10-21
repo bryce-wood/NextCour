@@ -42,6 +42,7 @@ class Related:
     title: str
     format: str | None
     aired: dt.date | None
+    status: str | None = None  # AniList's airing status, as for Show
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,9 @@ class Show:
     features: tuple[Feature, ...] = ()
     recommendations: Mapping[int, int] = field(default_factory=dict)  # linked show -> net votes
     follows: tuple[Related, ...] = ()  # its prequels and parents, as AniList lists them
+    # AniList's airing status: FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED or HIATUS.
+    status: str | None = None
+    aired_by: dt.date | None = None  # the latest day the start date could mean ("2027" -> 2027-12-31)
 
     def link_votes(self, other: Show) -> int:
         """Net votes for the crowd's link between this show and `other`, from either side."""
@@ -100,6 +104,7 @@ def from_anilist(media: dict[str, Any]) -> Show:
             title=_title(edge["node"].get("title")) or f"AniList show {edge['node']['id']}",
             format=edge["node"].get("format"),
             aired=fuzzy_date(edge["node"].get("startDate"), latest=False),
+            status=edge["node"].get("status"),
         )
         for edge in (media.get("relations") or {}).get("edges") or []
         if edge["node"].get("type") == "ANIME" and edge["relationType"] in ("PREQUEL", "PARENT")
@@ -116,6 +121,8 @@ def from_anilist(media: dict[str, Any]) -> Show:
         features=tuple(features),
         recommendations=recommendations,
         follows=tuple(follows),
+        status=media.get("status"),
+        aired_by=fuzzy_date(media.get("startDate"), latest=True),
     )
 
 

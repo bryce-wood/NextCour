@@ -57,6 +57,7 @@ def test_follows_holds_anime_prequels_and_parents_only():
             "id": anilist_id,
             "type": kind,
             "format": "TV",
+            "status": "RELEASING",
             "startDate": {"year": 2019, "month": 1, "day": 5},
             "title": {"romaji": f"Romaji {anilist_id}", "english": None},
         }
@@ -70,7 +71,7 @@ def test_follows_holds_anime_prequels_and_parents_only():
         (5, "PREQUEL", "Romaji 5"),
         (6, "PARENT", "Romaji 6"),
     ]
-    assert show.follows[0].aired == dt.date(2019, 1, 5)
+    assert (show.follows[0].aired, show.follows[0].status) == (dt.date(2019, 1, 5), "RELEASING")
 
 
 def test_basic_fields_and_links():
@@ -81,3 +82,5 @@ def test_basic_fields_and_links():
     assert show.link_votes(other) == 40
     assert other.link_votes(show) == 40  # a link reads the same from either side
     assert from_anilist(media(averageScore=None)).average_score == 82
+    # A start date of April 2020 could mean any day that month.
+    assert (show.aired, show.aired_by) == (dt.date(2020, 4, 1), dt.date(2020, 4, 30))

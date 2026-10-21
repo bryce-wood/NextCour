@@ -282,7 +282,7 @@ query ($ids: [Int]) {{
         nodes {{ rating mediaRecommendation {{ id }} }}
       }}
       relations {{ edges {{ relationType(version: 2)
-        node {{ id type format startDate {FUZZY_DATE} title {{ romaji english }} }} }} }}
+        node {{ id type format status startDate {FUZZY_DATE} title {{ romaji english }} }} }} }}
     }}
   }}
 }}
