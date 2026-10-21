@@ -1,5 +1,5 @@
 <div id="status" class="notice"
-  {% if writing %}hx-get="/u/{{ user }}/status" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
+  {% if writing %}hx-get="/u/{{ user | urlencode }}/status" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
   {% if writing %}
     Writing explanations in the background. The page reloads when they're ready; the plain versions
     stand in until then.

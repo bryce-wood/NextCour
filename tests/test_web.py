@@ -130,6 +130,16 @@ def test_planning_page_shows_the_ranked_list(app_parts):
     assert "GEMINI_API_KEY" in page  # no writer configured
 
 
+def test_titles_from_anilist_are_escaped():
+    feedback = FeedbackStore(":memory:")
+    planner = FakePlanner(feedback)
+    planner.shows = [(1, "<script>alert(1)</script>")]
+    writer = Writer(ExplanationStore(":memory:"), None)
+    page = TestClient(create_app(planner, writer, feedback, compare.Votes(":memory:"))).get("/u/Someone").text
+    assert "<script>alert(1)</script>" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+
+
 def test_not_interested_hides_a_show_until_undone(app_parts):
     client, feedback, *_ = app_parts
     assert client.post("/u/Someone/not-interested/2").headers["HX-Refresh"] == "true"
