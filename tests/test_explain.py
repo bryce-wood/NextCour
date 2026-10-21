@@ -76,14 +76,14 @@ def test_evidence_states_real_numbers_and_skips_tiny_effects():
         average.fact
         == "Show has an AniList average score of 84, higher than 90% of the shows you've watched."
     )
-    assert average.described_effect == "raises it strongly"
+    assert average.described_effect == "a strong point in its favor"
     assert "Mob Psycho 100" in link.fact and "42 votes" in link.fact and "95/100" in link.fact
-    assert link.described_effect == "raises it moderately"
+    assert link.described_effect == "a moderate point in its favor"
     # The tag lowers the score, so the examples are the shows that pull it down: A, then C.
     assert "less than AniList users did" in tag.fact
     assert "A (you gave it 60/100; it averages 80)" in tag.fact and "C (" in tag.fact
     assert "B (" not in tag.fact
-    assert tag.described_effect == "lowers it slightly"
+    assert tag.described_effect == "a slight point against it"
 
 
 def test_evidence_hash_changes_with_the_facts():

@@ -6,7 +6,7 @@ its prediction, so every reason an explanation gives is one that actually moved 
 
 - The average score always comes first: in scorer v0 it's the base everything else adjusts.
 - Then the largest personal contributions (taste match and crowd links), up to MAX_PERSONAL.
-- Effects are described in words ("raises it moderately"), not decimals, so the writer has no
+- Effects are described in words ("a moderate point in its favor"), not decimals, so the writer has no
   meaningless numbers to quote.
 """
 
@@ -38,8 +38,8 @@ class Evidence:
     @property
     def described_effect(self) -> str:
         size = abs(self.effect)
-        strength = "strongly" if size >= STRONG else "moderately" if size >= MODERATE else "slightly"
-        return f"{'raises' if self.effect >= 0 else 'lowers'} it {strength}"
+        strength = "strong" if size >= STRONG else "moderate" if size >= MODERATE else "slight"
+        return f"a {strength} point {'in its favor' if self.effect >= 0 else 'against it'}"
 
 
 def build(score: Score, title: str) -> list[Evidence]:

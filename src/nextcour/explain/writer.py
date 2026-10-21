@@ -31,7 +31,7 @@ from nextcour.explain.gemini import GeminiClient, LLMError
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 BATCH_SIZE = 10
 MAX_SENTENCES = 3
 MAX_CHARS = 300
@@ -46,19 +46,21 @@ SYSTEM = """\
 You write the short reason shown next to each anime on a NextCour recommendation list.
 
 For each show you get its title and its evidence: numbered facts about the show and the viewer's \
-own anime history, each with an ID and what it did to the show's predicted enjoyment ("raises it \
-strongly", "lowers it slightly", and so on).
+own anime history. Each fact has an ID and says how much it counts for or against the show ("a \
+strong point in its favor", "a slight point against it", and so on).
 
 Write 1 to 3 sentences for each show:
 - Use only that show's evidence. Never add facts, numbers, opinions or praise of your own (no \
 "you'll love this", no "a masterpiece").
-- Lead with the facts that moved the prediction most. If a fact lowers it, say so plainly.
+- Lead with the facts that count most. If a fact counts against the show, say so plainly.
 - Name the real shows, people and numbers from the evidence, and keep the numbers exactly as given.
-- When a fact compares the viewer with AniList users "relative to your other shows", keep that \
-idea. Don't turn it into a plain comparison of the two numbers: a 73 can be high for a viewer \
-whose scores run low.
+- Some facts say that, "relative to your other shows", the viewer liked a show more or less than \
+AniList users did. Keep that idea; never turn it into a plain comparison of the two numbers. A 73 \
+can be high for a viewer whose scores run low. Right: "relative to your other shows, you liked \
+Show A more than most viewers (you gave it 73; it averages 75)". Wrong: "you rated Show A above \
+its average".
 - Write to the viewer as "you", in plain, natural English, under 30 words per sentence.
-- Don't mention evidence, IDs, predictions or models in the text.
+- Don't mention evidence, IDs, predictions, points or models in the text.
 - Give each show's answer its show_id (S1, S2, ...), and list, for each sentence, the IDs of the \
 evidence it uses.
 

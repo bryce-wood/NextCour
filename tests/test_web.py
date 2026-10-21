@@ -171,7 +171,7 @@ def test_the_comparison_hides_models_until_the_results(app_parts):
             "anilist_id": 1,
             "title": "Frieren",
             "rank": 1,
-            "evidence": [{"id": "a", "fact": "A fact.", "effect": "raises it strongly"}],
+            "evidence": [{"id": "a", "fact": "A fact.", "effect": "a strong point in its favor"}],
             "a_model": "secret-model-x",
             "b_model": "secret-model-y",
             "a": {
