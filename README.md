@@ -43,6 +43,18 @@ That runs the web page at http://127.0.0.1:8000/, on your computer only. Enter a
 
 Explanations are written by Google's Gemini on its free tier when `GEMINI_API_KEY` is set in `.env` (copy `.env.example`). Without a key, each show gets a plain sentence built from the same facts. Every sentence has to cite the facts it uses, and a check drops any that don't hold up.
 
+## Evaluate
+
+The models are measured on MAL 2018 users (convert the datasets first; see Data below):
+
+```bash
+uv run nextcour split
+uv run nextcour calibrate
+uv run nextcour eval baselines
+```
+
+`split` divides MAL 2018 by time at 2017-07-01: each user's entries before then are the input, and the shows they watched after it are what the models try to predict. Users are divided into train, dev and test groups. `calibrate` measures the labels for unscored entries on train users. `eval baselines` scores the baselines on dev users with 95% confidence intervals and writes a results table to `data/results/`.
+
 ## Data
 
 Datasets live in `data/`, which git ignores. Nothing in `data/` is ever committed or redistributed. [`manifests/datasets.json`](manifests/datasets.json) records each file's source, size and SHA-256 checksum, so every result can name the exact data it used.

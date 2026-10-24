@@ -152,7 +152,7 @@ def known_by(entry: ListEntry, joined: dt.datetime) -> dt.date | None:
         return entry.completed
     if entry.started:
         return entry.started + MAX_WATCH
-    if entry.created - joined < dt.timedelta(days=1):
+    if entry.created is not None and entry.created - joined < dt.timedelta(days=1):
         # Added undated on my first day on AniList: shows I'd already watched (confirmed 2026-10-11).
         return joined.date()
     return None

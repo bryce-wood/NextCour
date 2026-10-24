@@ -311,6 +311,76 @@ def cmd_works_for_me(args: argparse.Namespace) -> None:
     print(f"\nWrote {out}")
 
 
+def cmd_split(args: argparse.Namespace) -> None:
+    from nextcour.evaluation import split
+
+    summary = split.build_training_split(cutoff=dt.date.fromisoformat(args.cutoff), release=args.release)
+    for line in summary.lines():
+        print(line)
+    print(f"Wrote {split.split_dir(summary.cutoff)}")
+
+
+def cmd_calibrate(args: argparse.Namespace) -> None:
+    from nextcour.profile import calibration
+
+    cutoff = dt.date.fromisoformat(args.cutoff)
+    tallies = calibration.fit_calibration(cutoff, args.sample)
+    print(f"Average relative score of scored entries, {args.sample:,} train users before {cutoff}:")
+    print(f"  {'situation':<36} {'mean':>6} {'± s.e.':>7} {'scored':>9} {'unscored':>9}")
+    for name in sorted(tallies, key=calibration.order):
+        t = tallies[name]
+        print(f"  {name:<36} {t.mean:6.3f} {t.standard_error:7.4f} {t.scored:9,} {t.unscored:9,}")
+    paths.RESULTS.mkdir(parents=True, exist_ok=True)
+    out = paths.RESULTS / f"calibration-{cutoff}-{args.sample}.json"
+    record = {
+        "measured_at": dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
+        **_commit(),
+        "cutoff": cutoff.isoformat(),
+        "sample_users": args.sample,
+        "situations": {
+            name: {
+                "mean": t.mean,
+                "standard_error": t.standard_error,
+                "scored": t.scored,
+                "unscored": t.unscored,
+            }
+            for name, t in sorted(tallies.items(), key=lambda kv: calibration.order(kv[0]))
+        },
+    }
+    out.write_text(json.dumps(record, indent=1), encoding="utf-8")
+    print(f"Wrote {out}")
+
+
+def cmd_eval(args: argparse.Namespace) -> None:
+    from nextcour.evaluation import harness
+
+    config = harness.CONFIGS[args.config]
+    if args.users == "test":
+        print("Test users: for reported results only, never for choosing anything.")
+    run = harness.evaluate(config, args.users, args.sample, dt.date.fromisoformat(args.cutoff))
+    summary = harness.summarize(run)
+    for line in harness.headline_lines(run, summary):
+        print(line)
+    commit = _commit()
+    stamp = f"{dt.datetime.now(dt.UTC):%Y-%m-%dT%H%M}"
+    size = f"-{args.sample}" if args.sample else ""
+    paths.RESULTS.mkdir(parents=True, exist_ok=True)
+    stem = paths.RESULTS / f"eval-{config.name}-{args.users}{size}-{stamp}"
+    stem.with_suffix(".md").write_text(harness.markdown(run, summary, commit), encoding="utf-8")
+    record = {
+        "run_at": stamp,
+        **commit,
+        "config": dataclasses.asdict(config),
+        "users": args.users,
+        "sample": args.sample,
+        "split": run.record,
+        "summary": summary,
+        "top_ten": run.top_ten,
+    }
+    stem.with_suffix(".json").write_text(json.dumps(record, indent=1), encoding="utf-8")
+    print(f"Wrote {stem}.md and .json")
+
+
 def main(argv: list[str] | None = None) -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # show titles aren't all ASCII
@@ -393,6 +463,25 @@ def main(argv: list[str] | None = None) -> None:
         "works-for-me", help="the 'works for me' test: scorer v0 vs. average score on my frozen shows"
     )
     p.set_defaults(run=cmd_works_for_me)
+
+    p = sub.add_parser("split", help="split MAL 2018 by time into train, dev and test users (Phase 2)")
+    p.add_argument("--cutoff", default="2017-07-01", help="history before this date, targets after")
+    p.add_argument("--release", default=catalog.RELEASE)
+    p.set_defaults(run=cmd_split)
+
+    p = sub.add_parser("calibrate", help="measure the labels for unscored entries on train users (Phase 2)")
+    p.add_argument("--cutoff", default="2017-07-01")
+    p.add_argument("--sample", type=int, default=20_000, help="how many train users")
+    p.set_defaults(run=cmd_calibrate)
+
+    p = sub.add_parser("eval", help="score every method in a config on the split's users (Phase 2)")
+    p.add_argument("config", help="a named config, e.g. baselines")
+    p.add_argument(
+        "--users", choices=["dev", "test"], default="dev", help="test is for reported results only"
+    )
+    p.add_argument("--sample", type=int, help="only the first N users, in the split's fixed random order")
+    p.add_argument("--cutoff", default="2017-07-01")
+    p.set_defaults(run=cmd_eval)
 
     args = parser.parse_args(argv)
     args.run(args)

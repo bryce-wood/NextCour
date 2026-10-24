@@ -35,7 +35,7 @@ class ListEntry:
     repeat: int  # how many times it was rewatched
     started: dt.date | None  # earliest day the recorded start could be
     completed: dt.date | None  # latest day the recorded completion could be
-    created: dt.datetime  # when the entry was added to the list (UTC)
+    created: dt.datetime | None  # when the entry was added to the list (UTC); MAL data doesn't say
     episodes: int | None = None  # the show's episode count, if known
     duration: int | None = None  # minutes per episode, if known
 
