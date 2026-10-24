@@ -138,7 +138,7 @@ def test_a_per_minute_limit_waits_the_delay_google_gives():
 
 def test_a_busy_model_is_retried_then_given_up_on():
     busy = httpx.Response(503, json={"error": {"message": "The model is overloaded."}})
-    client, _, sent = make_client([busy, httpx.ReadTimeout("slow"), answer({"ok": 1})])
+    client, _, sent = make_client([busy, httpx.ConnectError("refused"), answer({"ok": 1})])
     assert ask(client).data == {"ok": 1}
     client, _, sent = make_client([busy, busy, busy])
     with pytest.raises(ModelUnavailable, match="busy"):
@@ -164,3 +164,10 @@ def test_unknown_models_are_refused():
     with pytest.raises(ModelUnavailable):
         client.generate_json("no-such-model", "s", "p", {})
     assert sent == []
+
+
+def test_a_timeout_goes_straight_to_the_backup():
+    client, _, sent = make_client([httpx.ReadTimeout("slow"), answer({"ok": 1})])
+    with pytest.raises(ModelUnavailable, match="didn't answer within"):
+        ask(client)
+    assert len(sent) == 1  # no second wait on the same slow model

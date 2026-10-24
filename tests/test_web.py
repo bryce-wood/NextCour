@@ -198,6 +198,7 @@ def test_explanations_are_written_in_the_background(tmp_path):
     first = client.get("/u/Someone").text
     assert "Writing explanations" in first
     jobs.running["someone"].join(timeout=5)
+    assert jobs.progress["someone"] == (3, 3)  # written, out of those to write
     assert client.get("/u/Someone/status").headers["HX-Refresh"] == "true"
     page = client.get("/u/Someone").text
     assert page.count("Fans of Mob Psycho 100 recommend it.") == 3

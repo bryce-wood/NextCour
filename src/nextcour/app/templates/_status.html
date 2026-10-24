@@ -1,8 +1,8 @@
 <div id="status" class="notice"
   {% if writing %}hx-get="/u/{{ user | urlencode }}/status" hx-trigger="every 5s" hx-swap="outerHTML"{% endif %}>
   {% if writing %}
-    Writing explanations in the background. The page reloads when they're ready; the plain versions
-    stand in until then.
+    Writing explanations in the background{% if progress %}: {{ progress[0] }} of {{ progress[1] }} written so far{% endif %}.
+    The page reloads when they're ready; the plain versions stand in until then.
   {% else %}
     Nothing is being written right now.
   {% endif %}

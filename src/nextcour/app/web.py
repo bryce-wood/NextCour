@@ -48,7 +48,11 @@ class Jobs:
     running: dict[str, threading.Thread] = field(default_factory=dict)
     finished: dict[str, float] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)
+    progress: dict[str, tuple[int, int]] = field(default_factory=dict)  # (written, to write)
     lock: threading.Lock = field(default_factory=threading.Lock)
+
+    def report(self, user: str, done: int, total: int) -> None:
+        self.progress[user.lower()] = (done, total)
 
     def busy(self, user: str) -> bool:
         thread = self.running.get(user.lower())
@@ -115,6 +119,7 @@ def create_app(
             "explanations": found,
             "waiting": waiting,
             "writing": jobs.busy(ranking.user),
+            "progress": jobs.progress.get(ranking.user.lower()),
             "error": jobs.errors.get(ranking.user.lower()),
             "can_write": writer.client is not None,
             "picks": feedback.picks(ranking.user),
@@ -123,7 +128,13 @@ def create_app(
     def start_writing(ranking: Ranking) -> bool:
         if writer.client is None:
             return False
-        return jobs.start(ranking.user, lambda: service.failures(service.write_missing(writer, ranking)))
+        user = ranking.user
+
+        def work() -> str | None:
+            written = service.write_missing(writer, ranking, on_batch=lambda d, t: jobs.report(user, d, t))
+            return service.failures(written)
+
+        return jobs.start(user, work)
 
     @app.exception_handler(HTTPException)
     def error_page(request: Request, error: HTTPException) -> Response:
@@ -150,13 +161,21 @@ def create_app(
     @app.get("/u/{user}/status", response_class=HTMLResponse)
     def status(request: Request, user: str) -> Response:
         if jobs.busy(user):
-            return templates.TemplateResponse(request, "_status.html", {"user": user, "writing": True})
+            return templates.TemplateResponse(
+                request,
+                "_status.html",
+                {"user": user, "writing": True, "progress": jobs.progress.get(user.lower())},
+            )
         return Response(headers={"HX-Refresh": "true"})
 
     @app.post("/u/{user}/write", response_class=HTMLResponse)
     def write(request: Request, user: str) -> Response:
         start_writing(ranking_or_error(user))
-        return templates.TemplateResponse(request, "_status.html", {"user": user, "writing": jobs.busy(user)})
+        return templates.TemplateResponse(
+            request,
+            "_status.html",
+            {"user": user, "writing": jobs.busy(user), "progress": jobs.progress.get(user.lower())},
+        )
 
     @app.post("/u/{user}/not-interested/{anilist_id}")
     def not_interested(user: str, anilist_id: int) -> Response:

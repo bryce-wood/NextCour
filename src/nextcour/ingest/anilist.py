@@ -3,7 +3,10 @@
 - Paces requests to the rate limit AniList reports in its response headers (X-RateLimit-Limit;
   30 requests a minute as of 2026-10), spacing them evenly so it never bursts.
 - On a 429 it waits for Retry-After, then retries. On server or network errors it backs off.
-- Caches successful responses in SQLite, keyed by query and variables. Each call says how old a
+- Caches show data one show at a time, so a change to a list fetches only the shows that are
+  new to it. (Caching whole batches of 50 meant one new show shifted every batch, and they were
+  all fetched again.)
+- Caches other successful responses in SQLite, keyed by query and variables. Each call says how old a
   cached answer may be: long for show data (kept, and refetched once stale), short for user
   lists. User data older than USER_LIST_MAX_AGE is deleted whenever a client is created and
   before every query, so lists are only kept briefly (AniList's terms forbid using the API as a
@@ -139,19 +142,27 @@ class AniListClient:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
-    def query(self, query: str, variables: dict[str, Any] | None = None, *, max_age: float) -> Any:
-        """Run a GraphQL query and return its `data`, from the cache if it's fresh enough."""
+    def query(
+        self, query: str, variables: dict[str, Any] | None = None, *, max_age: float, store: bool = True
+    ) -> Any:
+        """Run a GraphQL query and return its `data`, from the cache if it's fresh enough.
+
+        store=False skips the cache entirely, for callers that cache the answer their own way.
+        """
         variables = variables or {}
         key = ResponseCache.key(query, variables)
         self._forget_stale_user_data()
-        if self.cache is not None:
+        if store and self.cache is not None:
             cached = self.cache.get(key, max_age, self._clock())
             if cached is not None:
                 return cached
         data = self._send(query, variables)
-        if self.cache is not None:
+        if store and self.cache is not None:
             self.cache.put(key, query, variables, data, self._clock())
         return data
+
+    def now(self) -> float:
+        return self._clock()
 
     def _wait_for_turn(self) -> None:
         now = self._clock()
@@ -334,10 +345,28 @@ def fetch_show_details(client: AniListClient, ids: Iterable[int]) -> list[dict[s
 
 
 def _fetch_media(client: AniListClient, query: str, ids: Iterable[int]) -> list[dict[str, Any]]:
+    """Shows by ID, each from the cache if it's fresh enough; the rest fetched 50 per request."""
     unique = sorted(set(ids))
-    media: list[dict[str, Any]] = []
-    for start in range(0, len(unique), MEDIA_PER_PAGE):
-        batch = unique[start : start + MEDIA_PER_PAGE]
-        page = client.query(query, {"ids": batch}, max_age=SHOW_MAX_AGE)
-        media.extend(page["Page"]["media"])
-    return media
+    cache = client.cache
+    found: dict[int, dict[str, Any]] = {}
+    if cache is not None:
+        now = client.now()
+        for show in unique:
+            hit = cache.get(ResponseCache.key(query, {"id": show}), SHOW_MAX_AGE, now)
+            if hit is not None:
+                found[show] = hit
+    missing = [show for show in unique if show not in found]
+    for start in range(0, len(missing), MEDIA_PER_PAGE):
+        batch = missing[start : start + MEDIA_PER_PAGE]
+        page = client.query(query, {"ids": batch}, max_age=SHOW_MAX_AGE, store=False)
+        for media in page["Page"]["media"]:
+            found[media["id"]] = media
+            if cache is not None:
+                cache.put(
+                    ResponseCache.key(query, {"id": media["id"]}),
+                    query,
+                    {"id": media["id"]},
+                    media,
+                    client.now(),
+                )
+    return [found[show] for show in unique if show in found]

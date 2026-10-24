@@ -381,15 +381,21 @@ class Writer:
     def cached(self, user: str, items: Iterable[Item]) -> dict[int, Explanation]:
         return {item.anilist_id: hit for item in items if (hit := self.store.get(user, item)) is not None}
 
-    def write(self, user: str, items: Sequence[Item]) -> dict[int, Explanation]:
+    def write(
+        self, user: str, items: Sequence[Item], on_batch: Callable[[int, int], None] | None = None
+    ) -> dict[int, Explanation]:
         """Every item's explanation, from the cache or written now.
 
         Whatever a model answered is cached, including templates that replaced sentences the
         checker dropped, so a failing prompt isn't sent again. Templates used because no model
         answered aren't, so a model can fill them in later.
+
+        on_batch(done, total) is called before the first batch and after each one.
         """
         out = self.cached(user, items)
         missing = [item for item in items if item.anilist_id not in out]
+        if on_batch:
+            on_batch(0, len(missing))
         for start in range(0, len(missing), self.batch_size):
             batch = missing[start : start + self.batch_size]
             results, answered_by = write_batch(batch, self.client, self.models)
@@ -397,4 +403,6 @@ class Writer:
                 out[item.anilist_id] = results[item.anilist_id]
                 if answered_by is not None:
                     self.store.put(user, item, results[item.anilist_id])
+            if on_batch:
+                on_batch(min(start + self.batch_size, len(missing)), len(missing))
         return out

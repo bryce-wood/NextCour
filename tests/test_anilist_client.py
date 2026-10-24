@@ -138,6 +138,21 @@ def test_fetch_media_batches_fifty_ids_per_request():
     assert [len(body["variables"]["ids"]) for _, body in sent] == [50, 50, 20]
 
 
+def test_show_data_is_cached_per_show_so_new_shows_alone_are_fetched():
+    cache = ResponseCache(":memory:")
+    first = ok({"Page": {"media": [{"id": 1}, {"id": 2}]}})
+    second = ok({"Page": {"media": [{"id": 3}]}})
+    client, fake, sent = make_client([first, second], cache=cache)
+    assert [m["id"] for m in anilist.fetch_show_details(client, [2, 1])] == [1, 2]
+    assert [m["id"] for m in anilist.fetch_show_details(client, [1, 2, 3])] == [1, 2, 3]
+    assert [body["variables"]["ids"] for _, body in sent] == [[1, 2], [3]]  # only the new show
+    fake.now += anilist.SHOW_MAX_AGE + 1  # stale: fetched again
+    client, _, sent = make_client([ok({"Page": {"media": [{"id": 1}]}})], cache=cache)
+    client._clock = lambda: fake.now
+    anilist.fetch_show_details(client, [1])
+    assert len(sent) == 1
+
+
 def test_user_data_is_deleted_from_the_cache_after_an_hour():
     cache = ResponseCache(":memory:")
     lists = ok({"MediaListCollection": {"hasNextChunk": False, "lists": []}})

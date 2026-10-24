@@ -11,7 +11,7 @@
 </p>
 
 {% if writing %}
-  {% with user=ranking.user, writing=True %}{% include "_status.html" %}{% endwith %}
+  {% with user=ranking.user, writing=True, progress=progress %}{% include "_status.html" %}{% endwith %}
 {% elif waiting %}
   <div id="status" class="notice">
     {{ waiting }} explanation{{ "s" if waiting != 1 }} still use the plain version.

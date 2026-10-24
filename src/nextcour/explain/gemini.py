@@ -12,6 +12,8 @@ sends no rate-limit headers, so the client keeps count itself:
   delay Google gives and tries again.
 - On a busy model (500, 503 or 504) or a network error, it retries twice with a short backoff,
   then gives up so the caller can move to the backup model.
+- A request that times out isn't retried: a model that slow is busy, and waiting out two more
+  timeouts would cost half an hour before the backup got a turn (seen 2026-10-24).
 
 Free-tier prompts may be used by Google and read by people, so only public data goes into them.
 """
@@ -144,6 +146,7 @@ class GeminiClient:
         sleep: Callable[[float], None] = time.sleep,
     ):
         self._http = httpx.Client(transport=transport, timeout=timeout, headers={"x-goog-api-key": api_key})
+        self._timeout = timeout
         self.usage = usage
         self.limits = limits
         self._clock = clock
@@ -220,6 +223,8 @@ class GeminiClient:
         self.requests_sent += 1
         try:
             return self._http.post(API_URL.format(model=model), json=body)
+        except httpx.TimeoutException as error:
+            raise ModelUnavailable(f"{model} didn't answer within {self._timeout:.0f} s") from error
         except httpx.TransportError as error:
             log.warning("%s: network error (%s)", model, error)
             return None
