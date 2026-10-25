@@ -450,6 +450,16 @@ def _split_context(folder, con, franchise_of):
     return methods.Context(folder, con, release, franchise_of)
 
 
+def cmd_examples(args: argparse.Namespace) -> None:
+    from nextcour.evaluation import examples, split
+
+    picked = examples.collect(split.split_dir())
+    paths.RESULTS.mkdir(parents=True, exist_ok=True)
+    out = paths.RESULTS / "examples-scorer-v1-dev.md"
+    examples.write(out, picked)
+    print(f"Wrote {len(picked.worst)} worst users and {len(picked.disagreements)} disagreements to {out}")
+
+
 def main(argv: list[str] | None = None) -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # show titles aren't all ASCII
@@ -563,6 +573,9 @@ def main(argv: list[str] | None = None) -> None:
     )
     p.add_argument("--versions", nargs="+", choices=["ordering", "open"], default=["ordering", "open"])
     p.set_defaults(run=cmd_llm_baseline)
+
+    p = sub.add_parser("examples", help="scorer v1's examples for my error analysis (dev users only)")
+    p.set_defaults(run=cmd_examples)
 
     args = parser.parse_args(argv)
     args.run(args)
