@@ -205,3 +205,43 @@ def test_slices_sort_by_job_then_the_design_notes_order():
         "B recall: popular",
         "B recall: niche",
     ]
+
+
+def assert_v1_parity(catalog, features, user, franchise_of, positions):
+    from nextcour.models.scorer_v1 import ScorerV1
+
+    history = {catalog.index[e.anilist_id] for e in user.history if e.anilist_id in catalog.index}
+    positions = np.array([p for p in positions if p not in history])  # v1 leaves a show out of its own series
+    fast = methods.ScorerV1Mal(catalog, features.matrix).scores(user, positions)
+    shows = v0_shows(catalog, features)
+    scorer = ScorerV1(user.profile, shows, franchise_of)
+    slow = [scorer.predict(shows[int(catalog.ids[p])]) for p in positions]
+    assert fast.tolist() == pytest.approx(slow, abs=1e-9)
+
+
+def test_scorer_v1_mal_matches_scorer_v1(setup):
+    catalog, ctx, user = setup
+    features = methods.load_features(catalog, ctx)
+    sequels = [catalog.index[102], catalog.index[103]]
+    assert_v1_parity(catalog, features, user, ctx.franchise_of, np.arange(len(catalog)))
+    fast = methods.ScorerV1Mal(catalog, features.matrix).scores(user, np.array(sequels))
+    v0 = methods.ScorerV0Mal(catalog, features.matrix).scores(user, np.array(sequels))
+    assert not np.allclose(fast, v0)  # the series point moved the sequels
+
+
+@pytest.mark.local_data
+def test_scorer_v1_mal_matches_scorer_v1_on_real_dev_users():
+    folder = split.split_dir()
+    if not (folder / "dev.parquet").exists():
+        pytest.skip("no local split")
+    con = duckdb.connect()
+    catalog = harness.load_catalog(folder, split.CUTOFF, con)
+    franchise_of = split.franchise_lookup(folder=folder)
+    record = split.json.loads((folder / "split.json").read_text(encoding="utf-8"))
+    ctx = methods.Context(folder, con, record["catalog_release"], franchise_of, log=lambda _: None)
+    features = methods.load_features(catalog, ctx)
+    rng = np.random.default_rng(1)
+    for raw in split.load_users("dev", limit=5, folder=folder, con=con):
+        user = harness.prepare(raw, catalog, franchise_of)
+        sample = rng.choice(len(catalog), 200, replace=False)
+        assert_v1_parity(catalog, features, user, franchise_of, np.concatenate([user.targets, sample]))

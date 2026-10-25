@@ -36,7 +36,7 @@ import numpy as np
 
 from nextcour.core import guardrail
 from nextcour.ingest import catalog as catalog_data
-from nextcour.models import scorer_v0
+from nextcour.models import scorer_v0, scorer_v1
 from nextcour.profile import enjoyment
 
 if TYPE_CHECKING:
@@ -375,6 +375,37 @@ class ScorerV0Mal(PerUser):
         return priors + scorer_v0.TASTE_WEIGHT * taste
 
 
+@dataclass
+class ScorerV1Mal(ScorerV0Mal):
+    """Scorer v1's formula on MAL data: personal points from enjoyment, no near-ties, a series point."""
+
+    name: str = "scorer_v1_mal"
+
+    def score_all(self, user: EvalUser) -> np.ndarray:
+        profile = user.profile
+        positions, weights, enjoyed = _profile_rows(user, self.catalog)
+        trust = profile.scored / (profile.scored + enjoyment.SCORE_TRUST)
+        priors = self.crowd_priors(positions, trust)
+        if not len(positions):
+            return priors
+        pushes = enjoyed - scorer_v1.MIDDLE
+        pushes[np.abs(pushes) < scorer_v1.NEAR] = 0.0
+        rows = self.features[positions]
+        affinity = ((weights * pushes) @ rows) / (weights @ rows + scorer_v0.TASTE_SHRINK)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            taste = np.where(self._totals > 0, (self.features @ affinity) / self._totals, 0.0)
+        base = priors + scorer_v0.TASTE_WEIGHT * taste
+        # The series point: each franchise's weight and average enjoyment in the history.
+        keys, inverse = np.unique(self.catalog.franchise[positions], return_inverse=True)
+        weight = np.bincount(inverse, weights=weights, minlength=len(keys))
+        total = np.bincount(inverse, weights=weights * enjoyed, minlength=len(keys))
+        slot = np.minimum(np.searchsorted(keys, self.catalog.franchise), len(keys) - 1)
+        found = (keys[slot] == self.catalog.franchise) & (weight[slot] > 0)
+        share = np.where(found, weight[slot] / (weight[slot] + scorer_v1.SERIES_SHRINK), 0.0)
+        average = np.where(found, total[slot] / np.where(weight[slot] > 0, weight[slot], 1.0), 0.0)
+        return (1 - share) * base + share * average
+
+
 def _llm():  # imported late: llm_baseline builds on this module
     from nextcour.evaluation import llm_baseline
 
@@ -391,6 +422,7 @@ BUILDERS: dict[str, Callable[[Catalog, Context], Method]] = {
     "content_similarity": lambda catalog, ctx: ContentSimilarity.fit(catalog, load_features(catalog, ctx)),
     "sequel_rule": lambda catalog, ctx: SequelRule(catalog),
     "scorer_v0_mal": lambda catalog, ctx: ScorerV0Mal(catalog, load_features(catalog, ctx).matrix),
+    "scorer_v1_mal": lambda catalog, ctx: ScorerV1Mal(catalog, load_features(catalog, ctx).matrix),
     "llm_ordering": lambda catalog, ctx: _llm().ordering_method(catalog, ctx),
     "llm_open": lambda catalog, ctx: _llm().open_method(catalog, ctx),
 }

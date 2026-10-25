@@ -246,6 +246,13 @@ CONFIGS = {
         "Every baseline, plus the LLM baseline (both versions, Gemini 3.5 Flash-Lite), on the users"
         " whose answers have been collected with `nextcour llm-baseline`.",
     ),
+    "scorers": Config(
+        "scorers",
+        ("average_score", "content_similarity", "sequel_rule", "scorer_v0_mal", "scorer_v1_mal"),
+        "scorer_v0_mal",
+        "Scorer v1 against v0 (E7), both on MAL data, beside the baselines they're judged against;"
+        " differences are from scorer v0.",
+    ),
     "simple": Config(
         "simple",
         ("random", "popularity", "average_score"),
