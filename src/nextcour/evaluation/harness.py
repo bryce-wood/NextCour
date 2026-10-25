@@ -239,6 +239,7 @@ CONFIGS = {
             "content_similarity",
             "sequel_rule",
             "scorer_v0_mal",
+            "scorer_v1_mal",
             "llm_ordering",
             "llm_open",
         ),
