@@ -37,7 +37,7 @@ def write_inputs(tmp_path, monkeypatch, lists):
     mal_dir = tmp_path / "parquet" / "mal-2018"
     catalog_dir.mkdir(parents=True)
     mal_dir.mkdir(parents=True)
-    con.execute("CREATE TABLE catalog (catalog_id INTEGER, anilist_ids INTEGER[])")
+    con.execute("CREATE TABLE catalog (catalog_id INTEGER, anilist_ids INTEGER[], tags VARCHAR[])")
     con.execute("CREATE TABLE mapping (catalog_id INTEGER, anilist_id INTEGER, mal_id INTEGER)")
     con.execute("CREATE TABLE franchises (catalog_id INTEGER, franchise_id INTEGER, method VARCHAR)")
     con.execute(
@@ -45,7 +45,10 @@ def write_inputs(tmp_path, monkeypatch, lists):
         " aired VARCHAR, episodes BIGINT, duration VARCHAR, studio VARCHAR, genre VARCHAR, source VARCHAR)"
     )
     for catalog_id, (mal_id, anilist_id, franchise_id, kind, aired) in enumerate(SHOWS, start=1):
-        con.execute("INSERT INTO catalog VALUES (?, ?)", [catalog_id, [anilist_id] if anilist_id else []])
+        tags = ["common", "odd" if mal_id % 2 else "even", *(["rare"] if mal_id in (4, 5) else [])]
+        con.execute(
+            "INSERT INTO catalog VALUES (?, ?, ?)", [catalog_id, [anilist_id] if anilist_id else [], tags]
+        )
         con.execute("INSERT INTO mapping VALUES (?, ?, ?)", [catalog_id, anilist_id, mal_id])
         if franchise_id:
             con.execute("INSERT INTO franchises VALUES (?, ?, 'typed')", [catalog_id, franchise_id])

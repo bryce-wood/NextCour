@@ -5,6 +5,8 @@
 Two jobs are measured (design note, Metrics):
 - **A. Planning list:** ordering accuracy among the shows a user started after the cutoff, which
   stand in for their Planning list, since MAL data doesn't record what was on it.
+- **D. Continue a series:** ordering accuracy among the targets that continue a franchise the user
+  had started before the cutoff, a stand-in for "next entries the user started".
 - **B. Discovery:** nDCG@10 and Recall@100 over the whole catalog. Candidates are franchise entry
   points that had aired by the end of the data, minus anything on the user's list before the
   cutoff and any franchise they'd started. Relevant shows are the targets among those candidates
@@ -18,6 +20,8 @@ Settled 2026-10-24, before the first result:
   shows with fewer get the average of all averages, so they sit in the middle, not at the bottom.
 - Ties in a method's ranking are broken by one fixed random order of the shows.
 - Every metric is per user, then averaged over users. Intervals are a paired bootstrap over users.
+
+The methods themselves are in methods.py. Each says which jobs it's measured on.
 """
 
 from __future__ import annotations
@@ -29,13 +33,14 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 import duckdb
 import numpy as np
 
 from nextcour.core import guardrail
 from nextcour.core.entries import WATCHED, ListEntry
+from nextcour.evaluation import methods as method_library
 from nextcour.evaluation import metrics, split
 from nextcour.profile import builder, enjoyment
 
@@ -56,6 +61,7 @@ class Catalog:
     franchise: np.ndarray  # franchise ID; a show outside any franchise gets its own (minus its ID)
     entry_point: np.ndarray
     year: np.ndarray  # year it started airing; NaN if unknown
+    aired_day: np.ndarray  # the day it started airing, as days since 1970; -1 if unknown
     aired_after_cutoff: np.ndarray
     available: np.ndarray  # aired by the end of the data, and not a music video
     members: np.ndarray  # train users with it on their list before the cutoff
@@ -121,6 +127,7 @@ def load_catalog(folder: Path, cutoff: dt.date, con: duckdb.DuckDBPyConnection |
         franchise=franchise,
         entry_point=np.array([bool(r[2]) for r in rows]),
         year=year,
+        aired_day=np.array([(a - dt.date(1970, 1, 1)).days if a else -1 for a in aired], dtype=np.int64),
         aired_after_cutoff=np.array([a is not None and a >= cutoff for a in aired]),
         available=available,
         members=members,
@@ -146,6 +153,7 @@ class EvalUser:
     seen: np.ndarray  # catalog positions of everything on the list before the cutoff
     started: frozenset[int]  # franchises with a watched entry before the cutoff
     has_dates: bool  # at least half the completed history has start and finish dates
+    watched: np.ndarray = field(default_factory=lambda: np.array([], dtype=np.int64))  # watched before
     franchise_of: Mapping[int, int] = field(repr=False, default_factory=dict)
     _profile: builder.Profile | None = field(default=None, repr=False)
 
@@ -184,64 +192,16 @@ def prepare(user: split.SplitUser, catalog: Catalog, franchise_of: Mapping[int, 
         seen=np.array([catalog.index[e.anilist_id] for e in user.history if e.anilist_id in catalog.index]),
         started=started,
         has_dates=bool(completed) and dated >= len(completed) / 2,
+        watched=np.array(
+            [
+                catalog.index[e.anilist_id]
+                for e in user.history
+                if e.status in WATCHED and e.anilist_id in catalog.index
+            ],
+            dtype=np.int64,
+        ),
         franchise_of=franchise_of,
     )
-
-
-# --- Methods ---------------------------------------------------------------------------------
-
-
-class Method(Protocol):
-    name: str
-
-    def scores(self, user: EvalUser, shows: np.ndarray) -> np.ndarray:
-        """A score for each catalog position in `shows`; higher means more likely to be enjoyed."""
-        ...
-
-
-@dataclass
-class RandomOrder:
-    """A floor: a fixed random order per user. Shows what chance looks like on each metric."""
-
-    catalog: Catalog
-    name: str = "random"
-
-    def scores(self, user: EvalUser, shows: np.ndarray) -> np.ndarray:
-        rng = np.random.default_rng(int(split.user_draw(user.name, seed=1) * 2**32))
-        return rng.random(len(self.catalog))[shows]
-
-
-@dataclass
-class Popularity:
-    """The shows the most train users had on their lists before the cutoff."""
-
-    catalog: Catalog
-    name: str = "popularity"
-
-    def scores(self, user: EvalUser, shows: np.ndarray) -> np.ndarray:
-        return self.catalog.members[shows].astype(float)
-
-
-@dataclass
-class AverageScore:
-    """The shows train users scored highest before the cutoff. Too few scores: the middle."""
-
-    catalog: Catalog
-    name: str = "average_score"
-
-    def __post_init__(self) -> None:
-        known = self.catalog.average[~np.isnan(self.catalog.average)]
-        self._filled = np.where(np.isnan(self.catalog.average), known.mean(), self.catalog.average)
-
-    def scores(self, user: EvalUser, shows: np.ndarray) -> np.ndarray:
-        return self._filled[shows]
-
-
-BUILDERS: dict[str, Callable[[Catalog], Method]] = {
-    "random": RandomOrder,
-    "popularity": Popularity,
-    "average_score": AverageScore,
-}
 
 
 @dataclass(frozen=True)
@@ -255,9 +215,25 @@ class Config:
 CONFIGS = {
     "baselines": Config(
         "baselines",
+        (
+            "random",
+            "popularity",
+            "average_score",
+            "item_item",
+            "content_similarity",
+            "sequel_rule",
+            "scorer_v0_mal",
+        ),
+        "average_score",
+        "Every baseline that MAL data supports: random order (a floor), popularity, average score,"
+        " item-item similarity, content similarity, the sequel rule (Job D only) and scorer v0 on MAL"
+        " data.",
+    ),
+    "simple": Config(
+        "simple",
         ("random", "popularity", "average_score"),
         "average_score",
-        "The simplest baselines: random order (a floor), popularity and average score.",
+        "The three simplest methods, as first run in E4.",
     ),
 }
 
@@ -272,10 +248,16 @@ def _decade(year: float) -> str:
 
 
 def job_a(user: EvalUser, catalog: Catalog, scores: np.ndarray) -> dict[str, float]:
-    """Ordering accuracy among the targets, overall and within each slice."""
-    out = {"A ordering accuracy": metrics.ordering_accuracy(user.labels, scores)}
+    """Ordering accuracy among the targets, overall and within each slice, and Job D's."""
+    out = {
+        "A ordering accuracy": metrics.ordering_accuracy(user.labels, scores),
+        "D ordering accuracy": (
+            metrics.ordering_accuracy(user.labels[user.sequel], scores[user.sequel])
+            if user.sequel.sum() > 1
+            else float("nan")
+        ),
+    }
     groups: dict[str, np.ndarray] = {
-        "sequels": user.sequel,
         "new franchises": ~user.sequel,
         "aired after the cutoff": catalog.aired_after_cutoff[user.targets],
         "aired before the cutoff": ~catalog.aired_after_cutoff[user.targets],
@@ -404,7 +386,9 @@ def evaluate(
     con = duckdb.connect()
     catalog = load_catalog(folder, cutoff, con)
     franchise_of = split.franchise_lookup(cutoff, folder)
-    methods = [BUILDERS[name](catalog) for name in config.methods]
+    record = json.loads((folder / "split.json").read_text(encoding="utf-8"))
+    ctx = method_library.Context(folder, con, record["catalog_release"], franchise_of, log)
+    methods = [method_library.BUILDERS[name](catalog, ctx) for name in config.methods]
     base = np.flatnonzero(catalog.available & catalog.entry_point)  # sorted, as discovery_gains needs
     rows: dict[str, list[dict[str, float]]] = {m.name: [] for m in methods}
     top_ten = {m.name: TopTen() for m in methods}
@@ -414,22 +398,21 @@ def evaluate(
         candidates = discovery_candidates(user, catalog, base)
         gain = discovery_gains(user, candidates)
         for method in methods:
-            rows[method.name].append(
-                {
-                    **job_a(user, catalog, method.scores(user, user.targets)),
-                    **job_b(
-                        user, catalog, candidates, gain, method.scores(user, candidates), top_ten[method.name]
-                    ),
-                }
-            )
+            row: dict[str, float] = {}
+            if "A" in method.jobs or "D" in method.jobs:
+                for key, value in job_a(user, catalog, method.scores(user, user.targets)).items():
+                    if key[0] in method.jobs:
+                        row[key] = value
+            if "B" in method.jobs:
+                scores = method.scores(user, candidates)
+                row.update(job_b(user, catalog, candidates, gain, scores, top_ten[method.name]))
+            rows[method.name].append(row)
         users += 1
         if users % 1000 == 0:
             log(f"  {users:,} users, {time.time() - start:.0f} s")
+    keys = sorted({key for method_rows in rows.values() for r in method_rows for key in r})
     per_user = {
-        name: {
-            key: np.array([r.get(key, math.nan) for r in method_rows])
-            for key in sorted(set().union(*(r.keys() for r in method_rows)))
-        }
+        name: {key: np.array([r.get(key, math.nan) for r in method_rows]) for key in keys}
         for name, method_rows in rows.items()
     }
     return Run(
@@ -440,15 +423,14 @@ def evaluate(
         top_ten={name: t.summary(len(base)) for name, t in top_ten.items()},
         candidates=len(base),
         seconds=time.time() - start,
-        record=json.loads((folder / "split.json").read_text(encoding="utf-8")),
+        record=record,
     )
 
 
 # --- Reporting -------------------------------------------------------------------------------
 
-HEADLINE = ("A ordering accuracy", "B nDCG@10", "B Recall@100")
+HEADLINE = ("A ordering accuracy", "B nDCG@10", "B Recall@100", "D ordering accuracy")
 SLICE_ORDER = (
-    "sequels",
     "new franchises",
     "popular",
     "middle",
@@ -465,7 +447,7 @@ SLICE_ORDER = (
 
 
 def slice_order(key: str) -> tuple[str, int]:
-    """Job first, then slices in the design note's order: sequels, popularity, age, cold start, dates."""
+    """Job first, then slices in the design note's order: franchises, popularity, age, cold start, dates."""
     job, _, name = key.partition(" ")
     name = name.split(": ", 1)[-1]
     return job, SLICE_ORDER.index(name) if name in SLICE_ORDER else len(SLICE_ORDER)
@@ -507,6 +489,7 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
     first = summary[methods[0]]
     job_a_users = first["A ordering accuracy"]["estimate"]["users"]
     job_b_users = first["B nDCG@10"]["estimate"]["users"]
+    job_d_users = first["D ordering accuracy"]["estimate"]["users"]
     dirty = " (uncommitted changes)" if commit.get("uncommitted_changes") else ""
     lines = [
         f"# Evaluation: {run.config.name} on {run.users:,} {run.part} users",
@@ -516,7 +499,8 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
         f"- **Split:** {run.record['dataset']}, cutoff {run.record['cutoff']}, seed {run.record['seed']},"
         f" catalog {run.record['catalog_release']}",
         f"- **Users:** {run.users:,} {run.part} users; Job A defined for {job_a_users:,}, Job B for"
-        f" {job_b_users:,} (the rest had no enjoyed new franchise after the cutoff)",
+        f" {job_b_users:,} (the rest had no enjoyed new franchise after the cutoff), Job D for"
+        f" {job_d_users:,} (two or more sequels with different labels)",
         f"- **Discovery candidates:** {run.candidates:,} entry points that had aired by {split.DATA_END}",
         f"- **Intervals:** 95%, paired bootstrap over users ({metrics.BOOTSTRAP_DRAWS:,} draws).",
         f"  Differences are against `{reference}`.",
@@ -524,8 +508,8 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
         "",
         "## Headline",
         "",
-        "| Method | A. Ordering accuracy | B. nDCG@10 | B. Recall@100 |",
-        "| --- | --- | --- | --- |",
+        "| Method | A. Ordering accuracy | B. nDCG@10 | B. Recall@100 | D. Ordering accuracy |",
+        "| --- | --- | --- | --- | --- |",
     ]
     for name in methods:
         cells = [_cell(summary[name][k]) for k in HEADLINE]
@@ -557,7 +541,9 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
     ]
     lines.append(f"| --- | {' | '.join('---' for _ in methods)} |")
     for key, digits in zip(next(iter(run.top_ten.values())), (3, 0, 1, 3), strict=True):
-        lines.append(f"| {key} | {' | '.join(f'{run.top_ten[m][key]:.{digits}f}' for m in methods)} |")
+        values = [run.top_ten[m][key] for m in methods]
+        cells = ["—" if math.isnan(v) else f"{v:.{digits}f}" for v in values]
+        lines.append(f"| {key} | {' | '.join(cells)} |")
     lines += [
         "",
         "## Experiment log stub",
@@ -584,6 +570,6 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
 
 def headline_lines(run: Run, summary: Mapping[str, Any]) -> Iterable[str]:
     yield f"{run.users:,} {run.part} users, {run.seconds:.0f} s"
-    yield f"  {'method':<16}" + "".join(f"{k:>34}" for k in HEADLINE)
+    yield f"  {'method':<20}" + "".join(f"{k:>30}" for k in HEADLINE)
     for name in run.per_user:
-        yield f"  {name:<16}" + "".join(f"{_cell(summary[name][k]):>34}" for k in HEADLINE)
+        yield f"  {name:<20}" + "".join(f"{_cell(summary[name][k]):>30}" for k in HEADLINE)
