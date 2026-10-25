@@ -574,7 +574,8 @@ def markdown(run: Run, summary: Mapping[str, Any], commit: Mapping[str, Any]) ->
         "1. **Hypothesis.**",
         "2. **Change.**",
         "3. **Metrics.** (the tables above)",
-        "4. **Error analysis.**",
+        "4. **Error analysis.** For a model experiment: my notes from the examples, written first,"
+        " then each one checked on all dev users.",
         "5. **Decision.**",
         "```",
     ]
