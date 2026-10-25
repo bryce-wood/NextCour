@@ -245,3 +245,17 @@ def test_scorer_v1_mal_matches_scorer_v1_on_real_dev_users():
         user = harness.prepare(raw, catalog, franchise_of)
         sample = rng.choice(len(catalog), 200, replace=False)
         assert_v1_parity(catalog, features, user, franchise_of, np.concatenate([user.targets, sample]))
+
+
+def test_examples_file_names_no_user(folder, tmp_path, monkeypatch):
+    from nextcour.evaluation import examples
+
+    monkeypatch.setattr(examples, "MIN_PAIRS", 1)
+    monkeypatch.setattr(examples, "MIN_GAP", 0.0)
+    picked = examples.collect(folder, log=lambda _: None)
+    assert [c.number for c in picked.worst] == [1]
+    out = tmp_path / "examples.md"
+    examples.write(out, picked)
+    text = out.read_text(encoding="utf-8")
+    assert "### User 1:" in text and "viewer" not in text  # numbered, never named
+    assert "crowd prior" in text
