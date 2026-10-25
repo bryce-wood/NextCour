@@ -381,6 +381,75 @@ def cmd_eval(args: argparse.Namespace) -> None:
     print(f"Wrote {stem}.md and .json")
 
 
+def cmd_llm_baseline(args: argparse.Namespace) -> None:
+    import numpy as np
+
+    from nextcour.core import settings
+    from nextcour.evaluation import harness, split
+    from nextcour.evaluation import llm_baseline as llm
+    from nextcour.explain import gemini
+
+    key = settings.gemini_api_key()
+    if not key:
+        sys.exit("No GEMINI_API_KEY in .env")
+    if args.users == "test":
+        print("Test users: for reported results only, never for choosing anything.")
+    folder = split.split_dir()
+    con = duckdb.connect()
+    catalog = harness.load_catalog(folder, split.CUTOFF, con)
+    franchise_of = split.franchise_lookup(folder=folder)
+    base = np.flatnonzero(catalog.available & catalog.entry_point)
+    done = {v: llm.load_answers(args.users, v) for v in args.versions}
+    client = gemini.GeminiClient(key, gemini.UsageLog(paths.APP_DB))
+    print(f"{client.remaining_today(llm.MODEL)} requests left today on {llm.MODEL}")
+    asked = users = 0
+    try:
+        for raw in split.load_users(args.users, limit=args.sample, folder=folder, con=con):
+            users += 1
+            user = harness.prepare(raw, catalog, franchise_of)
+            for version in args.versions:
+                if llm.user_key(raw.name) in done[version]:
+                    continue
+                if version == "ordering":
+                    if len(set(user.labels.tolist())) < 2:
+                        continue  # no pairs to order: Job A doesn't exist for this user
+                    wanted = set(catalog.ids[user.targets].tolist())
+                    answer = llm.ask(client, version, raw, [e for e in raw.after if e.anilist_id in wanted])
+                else:
+                    candidates = harness.discovery_candidates(user, catalog, base)
+                    if not harness.discovery_gains(user, candidates).any():
+                        continue  # no enjoyed new franchise: Job B doesn't exist for this user
+                    answer = llm.ask(client, version, raw)
+                llm.save_answer(args.users, answer)
+                done[version][answer.key] = answer
+                asked += 1
+                if asked % 10 == 0:
+                    print(
+                        f"  {asked} requests, {users} users; {client.remaining_today(llm.MODEL)} left today"
+                    )
+    except gemini.DailyQuotaUsed:
+        print("Today's free requests are used up. Run the same command after midnight Pacific to finish.")
+    except gemini.ModelUnavailable as error:
+        print(f"Stopped: {error}. Run the same command again to continue.")
+    finally:
+        client.close()
+    print(f"Sent {asked} requests this run.")
+    index = (
+        llm.TitleIndex.build(_split_context(folder, con, franchise_of)) if "open" in args.versions else None
+    )
+    for line in llm.summarize_answers(
+        done.get("ordering", {}).values(), done.get("open", {}).values(), index
+    ):
+        print(line)
+
+
+def _split_context(folder, con, franchise_of):
+    from nextcour.evaluation import methods
+
+    release = json.loads((folder / "split.json").read_text(encoding="utf-8"))["catalog_release"]
+    return methods.Context(folder, con, release, franchise_of)
+
+
 def main(argv: list[str] | None = None) -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # show titles aren't all ASCII
@@ -482,6 +551,18 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--sample", type=int, help="only the first N users, in the split's fixed random order")
     p.add_argument("--cutoff", default="2017-07-01")
     p.set_defaults(run=cmd_eval)
+
+    p = sub.add_parser(
+        "llm-baseline", help="ask Gemini for the LLM baseline's answers; resumes where it stopped"
+    )
+    p.add_argument(
+        "--users", choices=["dev", "test"], default="dev", help="test is for reported results only"
+    )
+    p.add_argument(
+        "--sample", type=int, required=True, help="the first N users, in the split's fixed random order"
+    )
+    p.add_argument("--versions", nargs="+", choices=["ordering", "open"], default=["ordering", "open"])
+    p.set_defaults(run=cmd_llm_baseline)
 
     args = parser.parse_args(argv)
     args.run(args)

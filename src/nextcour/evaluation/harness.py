@@ -229,6 +229,23 @@ CONFIGS = {
         " item-item similarity, content similarity, the sequel rule (Job D only) and scorer v0 on MAL"
         " data.",
     ),
+    "llm": Config(
+        "llm",
+        (
+            "random",
+            "popularity",
+            "average_score",
+            "item_item",
+            "content_similarity",
+            "sequel_rule",
+            "scorer_v0_mal",
+            "llm_ordering",
+            "llm_open",
+        ),
+        "average_score",
+        "Every baseline, plus the LLM baseline (both versions, Gemini 3.5 Flash-Lite), on the users"
+        " whose answers have been collected with `nextcour llm-baseline`.",
+    ),
     "simple": Config(
         "simple",
         ("random", "popularity", "average_score"),
@@ -387,7 +404,7 @@ def evaluate(
     catalog = load_catalog(folder, cutoff, con)
     franchise_of = split.franchise_lookup(cutoff, folder)
     record = json.loads((folder / "split.json").read_text(encoding="utf-8"))
-    ctx = method_library.Context(folder, con, record["catalog_release"], franchise_of, log)
+    ctx = method_library.Context(folder, con, record["catalog_release"], franchise_of, log, part)
     methods = [method_library.BUILDERS[name](catalog, ctx) for name in config.methods]
     base = np.flatnonzero(catalog.available & catalog.entry_point)  # sorted, as discovery_gains needs
     rows: dict[str, list[dict[str, float]]] = {m.name: [] for m in methods}

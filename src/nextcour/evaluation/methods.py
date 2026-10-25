@@ -57,6 +57,7 @@ class Context:
     release: str
     franchise_of: Mapping[int, int]
     log: Callable[[str], None] = print
+    part: str = "dev"  # whose answers the LLM methods read
     _features: ShowFeatures | None = None
 
 
@@ -374,6 +375,12 @@ class ScorerV0Mal(PerUser):
         return priors + scorer_v0.TASTE_WEIGHT * taste
 
 
+def _llm():  # imported late: llm_baseline builds on this module
+    from nextcour.evaluation import llm_baseline
+
+    return llm_baseline
+
+
 # --- Building them ---------------------------------------------------------------------------
 
 BUILDERS: dict[str, Callable[[Catalog, Context], Method]] = {
@@ -384,4 +391,6 @@ BUILDERS: dict[str, Callable[[Catalog, Context], Method]] = {
     "content_similarity": lambda catalog, ctx: ContentSimilarity.fit(catalog, load_features(catalog, ctx)),
     "sequel_rule": lambda catalog, ctx: SequelRule(catalog),
     "scorer_v0_mal": lambda catalog, ctx: ScorerV0Mal(catalog, load_features(catalog, ctx).matrix),
+    "llm_ordering": lambda catalog, ctx: _llm().ordering_method(catalog, ctx),
+    "llm_open": lambda catalog, ctx: _llm().open_method(catalog, ctx),
 }
